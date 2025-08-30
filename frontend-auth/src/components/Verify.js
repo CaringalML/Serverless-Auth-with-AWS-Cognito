@@ -106,7 +106,7 @@ const Verify = () => {
     setResendSuccess(false);
 
     try {
-      const result = await authService.resendVerification(email);
+      await authService.resendVerification(email);
       setResendSuccess(true);
       setResendCountdown(60); // Start 60-second countdown
       

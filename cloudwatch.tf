@@ -4,7 +4,7 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
 
   name              = "/aws/lambda/${var.project_name}-${var.environment}-${each.key}"
   retention_in_days = 14
-  skip_destroy      = false
+  skip_destroy      = var.skip_destroy_cloudwatch_logs
 
   lifecycle {
     prevent_destroy = false

@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://your-api-gateway-url/dev';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 export const API_ENDPOINTS = {
   SIGNUP: `${API_BASE_URL}/auth/signup`,
@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
   RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
   RESEND_VERIFICATION: `${API_BASE_URL}/auth/resend-verification`,
   REFRESH: `${API_BASE_URL}/auth/refresh`,
+  AUDIT_LOG: `${API_BASE_URL}/auth/logs`,
 };
 
 export default API_BASE_URL;

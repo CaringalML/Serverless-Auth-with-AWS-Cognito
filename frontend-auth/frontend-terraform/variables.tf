@@ -184,6 +184,12 @@ variable "force_destroy" {
   default     = true
 }
 
+variable "prevent_destroy_resources" {
+  description = "Prevent accidental destruction of resources and enable zero-downtime deployments (enable for production)"
+  type        = bool
+  default     = false
+}
+
 variable "versioning_enabled" {
   description = "Enable S3 bucket versioning for React build artifacts"
   type        = bool

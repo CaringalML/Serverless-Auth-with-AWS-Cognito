@@ -16,11 +16,32 @@ resource "aws_cognito_user_pool" "main" {
     email_sending_account = "COGNITO_DEFAULT"
   }
 
+  # Custom email verification template
+  verification_message_template {
+    default_email_option  = "CONFIRM_WITH_CODE"
+    email_subject         = "Welcome to ${var.project_name} - Verify Your Account"
+    email_message_by_link = templatefile("${path.module}/templates/verification_email.html", {
+      project_name = var.project_name
+      environment  = var.environment
+    })
+    email_subject_by_link = "Welcome to ${var.project_name} - Verify Your Account"
+    email_message         = "Your verification code is {####}. Please enter this code to complete your registration."
+  }
+
+  # Admin user creation configuration
+  admin_create_user_config {
+    allow_admin_create_user_only = false
+  }
+
   account_recovery_setting {
     recovery_mechanism {
       name     = "verified_email"
       priority = 1
     }
+  }
+
+  lifecycle {
+    prevent_destroy = false
   }
 
   schema {
@@ -86,4 +107,8 @@ resource "aws_cognito_user_pool_client" "main" {
     "email",
     "name"
   ]
+
+  lifecycle {
+    prevent_destroy = false
+  }
 }

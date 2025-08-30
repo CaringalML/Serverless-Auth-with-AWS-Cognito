@@ -19,6 +19,12 @@ resource "aws_dynamodb_table" "users" {
     projection_type = "ALL"
   }
 
+  lifecycle {
+    prevent_destroy = false
+  }
+
+  deletion_protection_enabled = var.skip_destroy_dynamodb
+
   tags = {
     Environment = var.environment
     Project     = var.project_name

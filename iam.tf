@@ -183,3 +183,117 @@ output "lambda_role_name" {
   description = "Name of the Lambda execution role"
   value       = aws_iam_role.lambda_role.name
 }
+
+# Data source to get current AWS account ID
+data "aws_caller_identity" "current" {}
+
+# IAM Role for CloudWatch Dashboard Access
+resource "aws_iam_role" "dashboard_viewer" {
+  name = "${var.project_name}-${var.environment}-dashboard-viewer"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      },
+      {
+        Action = "sts:AssumeRole" 
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# Policy for viewing CloudWatch dashboards and logs
+resource "aws_iam_policy" "dashboard_viewer_policy" {
+  name        = "${var.project_name}-${var.environment}-dashboard-viewer-policy"
+  path        = "/"
+  description = "Policy for viewing CloudWatch dashboards and authentication logs"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:GetDashboard",
+          "cloudwatch:ListDashboards",
+          "cloudwatch:GetMetricData",
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:ListMetrics",
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:DescribeAlarmsForMetric",
+          "cloudwatch:GetMetricWidgetImage"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams",
+          "logs:GetLogEvents",
+          "logs:FilterLogEvents",
+          "logs:StartQuery",
+          "logs:StopQuery",
+          "logs:DescribeQueries",
+          "logs:GetQueryResults"
+        ]
+        Resource = [
+          "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.project_name}-${var.environment}-*",
+          "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.project_name}-${var.environment}-*:*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:GetFunction",
+          "lambda:ListFunctions"
+        ]
+        Resource = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.project_name}-${var.environment}-*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "apigateway:GET"
+        ]
+        Resource = "arn:aws:apigateway:${var.aws_region}::/restapis/${aws_api_gateway_rest_api.main.id}/*"
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# Attach policy to role
+resource "aws_iam_role_policy_attachment" "dashboard_viewer_policy_attachment" {
+  role       = aws_iam_role.dashboard_viewer.name
+  policy_arn = aws_iam_policy.dashboard_viewer_policy.arn
+}
+
+# Outputs for dashboard access
+output "dashboard_viewer_role_arn" {
+  description = "ARN of the dashboard viewer IAM role"
+  value       = aws_iam_role.dashboard_viewer.arn
+}
+
+output "dashboard_assume_role_url" {
+  description = "URL to assume the dashboard viewer role"
+  value       = "https://signin.aws.amazon.com/switchrole?account=${data.aws_caller_identity.current.account_id}&roleName=${aws_iam_role.dashboard_viewer.name}&displayName=${var.project_name}-dashboard-viewer"
+}

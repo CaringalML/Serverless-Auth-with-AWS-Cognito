@@ -4,7 +4,7 @@ resource "aws_cloudwatch_log_group" "api_gateway_logs" {
 
   name              = "/aws/apigateway/${var.project_name}-${var.environment}-api"
   retention_in_days = 14
-  skip_destroy      = false
+  skip_destroy      = var.skip_destroy_cloudwatch_logs
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-api-logs"
@@ -62,6 +62,10 @@ locals {
     }
     refresh = {
       path_part = "refresh"
+      method    = "POST"
+    }
+    audit_log = {
+      path_part = "logs"
       method    = "POST"
     }
   }

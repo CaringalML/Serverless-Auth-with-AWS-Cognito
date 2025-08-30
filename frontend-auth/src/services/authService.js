@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_ENDPOINTS } from '../config/api';
+import loggingService from './loggingService';
 
 class AuthService {
   constructor() {
@@ -63,6 +64,9 @@ class AuthService {
   setupAxiosInterceptors() {
     axios.interceptors.request.use(
       (config) => {
+        // Add timing metadata
+        config.metadata = { startTime: Date.now() };
+        
         const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -75,41 +79,120 @@ class AuthService {
     );
 
     axios.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Log successful API calls
+        const duration = response.config.metadata?.startTime ? 
+          Date.now() - response.config.metadata.startTime : 0;
+        loggingService.logAPICall(
+          response.config.method.toUpperCase(),
+          response.config.url,
+          response.status,
+          duration
+        );
+        return response;
+      },
       async (error) => {
         const originalRequest = error.config;
         
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Log API errors
+        const duration = originalRequest.metadata?.startTime ? 
+          Date.now() - originalRequest.metadata.startTime : 0;
+        loggingService.logAPICall(
+          originalRequest.method.toUpperCase(),
+          originalRequest.url,
+          error.response?.status || 0,
+          duration,
+          error
+        );
+        
+        // Don't try to refresh tokens for authentication endpoints
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/signin') || 
+                              originalRequest.url?.includes('/auth/signup') ||
+                              originalRequest.url?.includes('/auth/verify') ||
+                              originalRequest.url?.includes('/auth/forgot-password') ||
+                              originalRequest.url?.includes('/auth/reset-password') ||
+                              originalRequest.url?.includes('/auth/refresh');
+        
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+          // Only try refresh if we have a refresh token
+          const refreshToken = this.getRefreshToken();
+          if (!refreshToken) {
+            // Log token refresh failure
+            loggingService.logTokenEvent('REFRESH_FAILED', 'refresh_token', {
+              reason: 'No refresh token available',
+              url: originalRequest.url
+            });
+            
+            // Silent logout - don't show technical error to user
+            this.logout();
+            window.location.href = '/signin';
+            
+            // Return user-friendly error
+            const userError = new Error(loggingService.getUserFriendlyMessage('No refresh token available'));
+            return Promise.reject(userError);
+          }
+          
           originalRequest._retry = true;
           
           try {
+            loggingService.logTokenEvent('REFRESH_ATTEMPT', 'access_token');
             await this.refreshAccessToken();
+            loggingService.logTokenRefresh(true);
+            
             // Update the authorization header with new token
             originalRequest.headers.Authorization = `Bearer ${this.getToken()}`;
             // Retry the original request
             return axios(originalRequest);
           } catch (refreshError) {
-            // Refresh failed, logout user
+            // Log refresh failure
+            loggingService.logTokenRefresh(false, refreshError);
+            
+            // Silent logout
             this.logout();
             window.location.href = '/signin';
-            return Promise.reject(refreshError);
+            
+            // Return user-friendly error
+            const userError = new Error(loggingService.getUserFriendlyMessage(refreshError.message));
+            return Promise.reject(userError);
           }
         }
         
-        return Promise.reject(error);
+        // For other errors, return user-friendly message but log the technical details
+        loggingService.logError(error, 'API_CALL', originalRequest.url);
+        
+        // Return original error for auth endpoints to show proper validation messages
+        if (isAuthEndpoint) {
+          return Promise.reject(error);
+        }
+        
+        // For other endpoints, return user-friendly error
+        const userFriendlyError = new Error(loggingService.getUserFriendlyMessage(error.message || error.toString()));
+        return Promise.reject(userFriendlyError);
       }
     );
   }
 
   async signup(email, password, name) {
     try {
+      loggingService.logUserActivity('SIGNUP_ATTEMPT', { 
+        email: email.substring(0, 3) + '***@' + email.split('@')[1],
+        name: name.substring(0, 1) + '***'
+      });
+      
       const response = await axios.post(API_ENDPOINTS.SIGNUP, {
         email,
         password,
         name,
       });
+      
+      // Log successful signup
+      loggingService.logSignup(true, email);
+      
       return response.data;
     } catch (error) {
+      // Log failed signup
+      loggingService.logSignup(false, email, error.response?.data || error);
+      
       throw error.response?.data || error;
     }
   }
@@ -127,7 +210,10 @@ class AuthService {
   }
 
   async signin(email, password) {
+    const startTime = Date.now();
     try {
+      loggingService.logUserActivity('SIGNIN_ATTEMPT', { email: email.substring(0, 3) + '***@' + email.split('@')[1] });
+      
       const response = await axios.post(API_ENDPOINTS.SIGNIN, {
         email,
         password,
@@ -138,13 +224,23 @@ class AuthService {
         this.setRefreshToken(response.data.refreshToken);
         this.setIdToken(response.data.idToken);
         
+        // Set user ID for logging
+        const userInfo = this.getUserInfo();
+        loggingService.setUserId(userInfo?.sub || userInfo?.email);
+        
         // Start activity tracking after successful login
         this.updateLastActivity();
         this.startActivityTracking();
+        
+        // Log successful login
+        loggingService.logLogin(true, email);
       }
       
       return response.data;
     } catch (error) {
+      // Log failed login attempt
+      loggingService.logLogin(false, email, error.response?.data || error);
+      
       throw error.response?.data || error;
     }
   }
@@ -214,6 +310,9 @@ class AuthService {
   }
 
   logout() {
+    // Log logout event
+    loggingService.logLogout('user_initiated');
+    
     this.token = null;
     // Clear cookies
     this.deleteCookie('accessToken');
@@ -221,6 +320,9 @@ class AuthService {
     this.deleteCookie('idToken');
     // Stop activity tracking
     this.stopActivityTracking();
+    
+    // Clear user ID from logging service
+    loggingService.setUserId(null);
   }
 
   decodeToken(token) {
@@ -253,7 +355,9 @@ class AuthService {
 
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
-      throw new Error('No refresh token available');
+      const error = new Error('No refresh token available - user needs to login again');
+      error.code = 'NO_REFRESH_TOKEN';
+      throw error;
     }
 
     this.isRefreshing = true;
@@ -329,6 +433,16 @@ class AuthService {
   updateLastActivity() {
     this.lastActivityTime = Date.now();
     this.resetInactivityTimers();
+    
+    // Log user activity periodically (every 5 minutes)
+    const now = Date.now();
+    if (!this.lastActivityLog || now - this.lastActivityLog > 5 * 60 * 1000) {
+      loggingService.logUserActivity('USER_ACTIVE', {
+        page: window.location.pathname,
+        timestamp: new Date().toISOString()
+      });
+      this.lastActivityLog = now;
+    }
   }
 
   isUserActive() {
@@ -386,6 +500,9 @@ class AuthService {
 
     // Set warning timer (5 minutes before logout)
     this.warningTimer = setTimeout(() => {
+      // Log inactivity warning
+      loggingService.logInactivityWarning();
+      
       if (this.onInactivityWarning) {
         this.onInactivityWarning(this.warningTimeout / 1000); // Pass seconds until logout
       }
@@ -398,13 +515,22 @@ class AuthService {
   }
 
   handleInactivityLogout() {
-    console.log('User logged out due to inactivity');
+    // Log inactivity logout
+    loggingService.logInactivityLogout();
     
     if (this.onInactivityLogout) {
       this.onInactivityLogout();
     }
     
-    this.logout();
+    // Use specific logout reason
+    loggingService.logLogout('inactivity_timeout');
+    
+    this.token = null;
+    this.deleteCookie('accessToken');
+    this.deleteCookie('refreshToken');
+    this.deleteCookie('idToken');
+    this.stopActivityTracking();
+    loggingService.setUserId(null);
     
     // Redirect to login page
     if (window.location.pathname !== '/signin') {

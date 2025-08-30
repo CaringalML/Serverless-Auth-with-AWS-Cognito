@@ -124,3 +124,37 @@ variable "api_gateway_metrics_enabled" {
   type        = bool
   default     = true
 }
+
+# Alert Configuration Variables
+variable "security_alert_email" {
+  description = "Email address for security alerts"
+  type        = string
+  default     = "lawrencecaringal5@gmail.com"
+  sensitive   = true
+}
+
+variable "system_alert_email" {
+  description = "Email address for system alerts"
+  type        = string
+  default     = "lawrencecaringal5@gmail.com"
+  sensitive   = true
+}
+
+# Destroy Protection Variables
+variable "skip_destroy_cloudwatch_logs" {
+  description = "Skip destroying CloudWatch log groups on terraform destroy"
+  type        = bool
+  default     = false
+}
+
+variable "skip_destroy_dynamodb" {
+  description = "Skip destroying DynamoDB tables on terraform destroy"
+  type        = bool
+  default     = false
+}
+
+variable "prevent_destroy_resources" {
+  description = "Prevent accidental destruction of all resources and enable zero-downtime deployments (enable for production)"
+  type        = bool
+  default     = false
+}

@@ -47,6 +47,10 @@ locals {
       handler = "handler.lambda_handler"
       timeout = 10
     }
+    audit_log = {
+      handler = "handler.lambda_handler"
+      timeout = 15
+    }
   }
 }
 
@@ -88,6 +92,8 @@ resource "aws_lambda_function" "auth_functions" {
       CORS_ALLOW_HEADERS     = var.cors_allow_headers
       CORS_ALLOW_METHODS     = var.cors_allow_methods
       CORS_ALLOW_CREDENTIALS = var.cors_allow_credentials
+      PROJECT_NAME           = var.project_name
+      ENVIRONMENT            = var.environment
     }
   }
 

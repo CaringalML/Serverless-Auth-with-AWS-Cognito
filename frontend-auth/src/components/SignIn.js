@@ -25,7 +25,7 @@ const SignIn = () => {
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading } = useSelector((state) => state.auth);
 
   useEffect(() => {
     // Validate email on change if touched

@@ -38,6 +38,7 @@ const SignIn = () => {
       const passwordError = formData.password ? '' : 'Password is required';
       setFieldErrors(prev => ({ ...prev, password: passwordError }));
     }
+    // Note: Server errors (auth.error) are NOT cleared here - they persist until manually dismissed
   }, [formData, touched]);
 
   const handleChange = (e) => {
@@ -47,7 +48,7 @@ const SignIn = () => {
     });
     
     // Don't auto-clear server errors - let user see the message
-    // Errors will be cleared on next submit attempt or manual dismiss
+    // Server errors will persist until manually dismissed or successful sign-in
   };
   
   const handleBlur = (field) => {
@@ -77,6 +78,7 @@ const SignIn = () => {
       return;
     }
     
+    // Note: Server errors will persist during sign-in attempt and will be replaced only if sign-in fails
     const result = await dispatch(signin({
       email: formData.email,
       password: formData.password,

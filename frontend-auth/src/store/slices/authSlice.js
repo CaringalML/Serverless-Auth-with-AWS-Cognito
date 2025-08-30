@@ -124,7 +124,8 @@ const authSlice = createSlice({
       })
       .addCase(signin.pending, (state) => {
         state.loading = true;
-        // Don't auto-clear error - let it persist for user to see
+        // Keep existing error visible during sign-in attempt
+        // Error will only be cleared on success or replaced on failure
       })
       .addCase(signin.fulfilled, (state, action) => {
         state.loading = false;

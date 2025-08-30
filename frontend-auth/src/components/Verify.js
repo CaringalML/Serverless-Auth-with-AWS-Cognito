@@ -9,6 +9,7 @@ const Verify = () => {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [email, setEmail] = useState(location.state?.email || '');
   const [isVerified, setIsVerified] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(3);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendError, setResendError] = useState('');
@@ -21,10 +22,17 @@ const Verify = () => {
 
   useEffect(() => {
     if (isVerified) {
-      const timer = setTimeout(() => {
-        navigate('/signin');
-      }, 3000);
-      return () => clearTimeout(timer);
+      const interval = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev <= 1) {
+            navigate('/signin');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(interval);
     }
   }, [isVerified, navigate]);
 
@@ -149,14 +157,48 @@ const Verify = () => {
         </p>
         
         {isVerified && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-4 rounded-lg mb-4 relative overflow-hidden">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-6 h-6 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <div>
-                <p className="font-semibold">Email verified successfully!</p>
-                <p className="text-sm">Redirecting to sign in page in 3 seconds...</p>
+              <div className="flex-1">
+                <p className="font-semibold text-lg">Email verified successfully!</p>
+                <p className="text-sm mt-1">
+                  Redirecting to sign in page in{' '}
+                  <span className="font-bold text-green-800 text-base">
+                    {redirectCountdown}
+                  </span>
+                  {' '}second{redirectCountdown !== 1 ? 's' : ''}...
+                </p>
+              </div>
+              <div className="ml-4">
+                <div className="relative w-12 h-12">
+                  <svg className="transform -rotate-90 w-12 h-12">
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      className="text-green-300"
+                    />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeDasharray={`${(redirectCountdown / 3) * 125.6} 125.6`}
+                      className="text-green-600 transition-all duration-1000"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-green-800 font-bold text-lg">{redirectCountdown}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

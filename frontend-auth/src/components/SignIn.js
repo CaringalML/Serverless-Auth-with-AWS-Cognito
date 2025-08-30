@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { signin } from '../store/slices/authSlice';
+import { signin, clearError } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
 
 const SignIn = () => {
@@ -21,10 +21,18 @@ const SignIn = () => {
   });
   
   const [showPassword, setShowPassword] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
+
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     // Validate email on change if touched
@@ -46,8 +54,16 @@ const SignIn = () => {
       [e.target.name]: e.target.value,
     });
     
-    // Don't auto-clear server errors - let user see the message
-    // Server errors will persist until manually dismissed or successful sign-in
+    // Only clear error if user has submitted before and is now making changes
+    // This ensures error stays visible after failed login until user tries to fix it
+    if (hasSubmitted && error) {
+      // Only clear after both fields have been modified since the error appeared
+      const otherField = e.target.name === 'email' ? 'password' : 'email';
+      if (formData[otherField].length > 0) {
+        dispatch(clearError());
+        setHasSubmitted(false);
+      }
+    }
   };
   
   const handleBlur = (field) => {
@@ -56,6 +72,9 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Mark that we've attempted submission
+    setHasSubmitted(true);
     
     // Touch all fields to show validation
     setTouched({
@@ -77,6 +96,9 @@ const SignIn = () => {
       return;
     }
     
+    // Clear any existing error before attempting sign in
+    dispatch(clearError());
+    
     const result = await dispatch(signin({
       email: formData.email,
       password: formData.password,
@@ -85,6 +107,11 @@ const SignIn = () => {
     if (signin.fulfilled.match(result)) {
       navigate('/dashboard');
     }
+  };
+
+  const handleDismissError = () => {
+    dispatch(clearError());
+    setHasSubmitted(false);
   };
 
   return (
@@ -121,11 +148,23 @@ const SignIn = () => {
         
         {error && (
           <div className="bg-red-50/80 backdrop-blur border border-red-200/50 text-red-600 px-4 py-3 rounded-xl mb-6 shadow-sm">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              {error}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center flex-1">
+                <svg className="w-5 h-5 mr-2 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissError}
+                className="ml-3 text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
+                aria-label="Dismiss error"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
             </div>
           </div>
         )}

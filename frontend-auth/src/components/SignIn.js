@@ -22,10 +22,18 @@ const SignIn = () => {
   
   const [showPassword, setShowPassword] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [preserveError, setPreserveError] = useState(false);
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
+
+  // Preserve error when it appears after submission
+  useEffect(() => {
+    if (error && hasSubmitted && !preserveError) {
+      setPreserveError(true);
+    }
+  }, [error, hasSubmitted, preserveError]);
 
   // Clear error when component unmounts
   useEffect(() => {
@@ -49,21 +57,15 @@ const SignIn = () => {
   }, [formData, touched]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
     
-    // Only clear error if user has submitted before and is now making changes
-    // This ensures error stays visible after failed login until user tries to fix it
-    if (hasSubmitted && error) {
-      // Only clear after both fields have been modified since the error appeared
-      const otherField = e.target.name === 'email' ? 'password' : 'email';
-      if (formData[otherField].length > 0) {
-        dispatch(clearError());
-        setHasSubmitted(false);
-      }
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    
+    // Don't auto-clear server errors on typing
+    // The error should stay visible until user fixes BOTH fields or dismisses it manually
   };
   
   const handleBlur = (field) => {
@@ -96,8 +98,8 @@ const SignIn = () => {
       return;
     }
     
-    // Clear any existing error before attempting sign in
-    dispatch(clearError());
+    // DON'T clear error before sign in - let Redux handle it
+    // The error should only be cleared on successful signin
     
     const result = await dispatch(signin({
       email: formData.email,
@@ -107,11 +109,13 @@ const SignIn = () => {
     if (signin.fulfilled.match(result)) {
       navigate('/dashboard');
     }
+    // If signin fails, the error will be set by Redux and should persist
   };
 
   const handleDismissError = () => {
     dispatch(clearError());
     setHasSubmitted(false);
+    setPreserveError(false);
   };
 
   return (

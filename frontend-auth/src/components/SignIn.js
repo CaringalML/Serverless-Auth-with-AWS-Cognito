@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { signin, clearError } from '../store/slices/authSlice';
+import { signin } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
 
 const SignIn = () => {
@@ -13,6 +13,7 @@ const SignIn = () => {
   const [fieldErrors, setFieldErrors] = useState({
     email: '',
     password: '',
+    server: '', // Add server error field
   });
   
   const [touched, setTouched] = useState({
@@ -21,26 +22,10 @@ const SignIn = () => {
   });
   
   const [showPassword, setShowPassword] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [preserveError, setPreserveError] = useState(false);
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
-
-  // Preserve error when it appears after submission
-  useEffect(() => {
-    if (error && hasSubmitted && !preserveError) {
-      setPreserveError(true);
-    }
-  }, [error, hasSubmitted, preserveError]);
-
-  // Clear error when component unmounts
-  useEffect(() => {
-    return () => {
-      dispatch(clearError());
-    };
-  }, [dispatch]);
 
   useEffect(() => {
     // Validate email on change if touched
@@ -57,15 +42,15 @@ const SignIn = () => {
   }, [formData, touched]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // Don't auto-clear server errors on typing
-    // The error should stay visible until user fixes BOTH fields or dismisses it manually
+    // Clear server error when user starts typing
+    if (fieldErrors.server) {
+      setFieldErrors(prev => ({ ...prev, server: '' }));
+    }
   };
   
   const handleBlur = (field) => {
@@ -74,9 +59,6 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Mark that we've attempted submission
-    setHasSubmitted(true);
     
     // Touch all fields to show validation
     setTouched({
@@ -91,15 +73,13 @@ const SignIn = () => {
     // Update field errors for display
     setFieldErrors({
       email: emailValidation.error,
-      password: passwordError
+      password: passwordError,
+      server: '' // Clear server error on new attempt
     });
     
     if (!emailValidation.isValid || passwordError) {
       return;
     }
-    
-    // DON'T clear error before sign in - let Redux handle it
-    // The error should only be cleared on successful signin
     
     const result = await dispatch(signin({
       email: formData.email,
@@ -108,14 +88,13 @@ const SignIn = () => {
 
     if (signin.fulfilled.match(result)) {
       navigate('/dashboard');
+    } else if (signin.rejected.match(result)) {
+      // Display server error under password field
+      setFieldErrors(prev => ({
+        ...prev,
+        server: result.payload || 'Sign in failed'
+      }));
     }
-    // If signin fails, the error will be set by Redux and should persist
-  };
-
-  const handleDismissError = () => {
-    dispatch(clearError());
-    setHasSubmitted(false);
-    setPreserveError(false);
   };
 
   return (
@@ -150,28 +129,6 @@ const SignIn = () => {
           <p className="text-gray-600 font-medium text-lg">Sign in to your account</p>
         </div>
         
-        {error && (
-          <div className="bg-red-50/80 backdrop-blur border border-red-200/50 text-red-600 px-4 py-3 rounded-xl mb-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center flex-1">
-                <svg className="w-5 h-5 mr-2 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span>{error}</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleDismissError}
-                className="ml-3 text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
-                aria-label="Dismiss error"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="relative">
@@ -256,6 +213,14 @@ const SignIn = () => {
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
                 {fieldErrors.password}
+              </div>
+            )}
+            {fieldErrors.server && (
+              <div className="mt-3 flex items-center text-sm text-red-600 bg-red-50/80 backdrop-blur p-3 rounded-xl border border-red-200/50">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {fieldErrors.server}
               </div>
             )}
           </div>

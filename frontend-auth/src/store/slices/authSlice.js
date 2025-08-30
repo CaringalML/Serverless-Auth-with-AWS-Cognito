@@ -41,9 +41,9 @@ export const signin = createAsyncThunk(
       const userInfo = authService.getUserInfo();
       return { ...response, user: userInfo };
     } catch (error) {
-      console.log('SignIn Error:', error); // Debug log
-      // Always return a consistent user-friendly error message for sign-in failures
-      return rejectWithValue('Invalid email or password');
+      // Extract error message from server response
+      const errorMessage = error.error || error.message || 'Invalid email or password';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -134,10 +134,7 @@ const authSlice = createSlice({
       })
       .addCase(signin.rejected, (state, action) => {
         state.loading = false;
-        console.log('SignIn Rejected - Payload:', action.payload); // Debug log
-        console.log('SignIn Rejected - Error:', action.error); // Debug log
         state.error = action.payload || action.error.message;
-        console.log('Final Error State:', state.error); // Debug log
       })
       .addCase(forgotPassword.pending, (state) => {
         state.loading = true;

@@ -11,9 +11,13 @@ const initialState = {
 
 export const signup = createAsyncThunk(
   'auth/signup',
-  async ({ email, password, name }) => {
-    const response = await authService.signup(email, password, name);
-    return { ...response, email };
+  async ({ email, password, name }, { rejectWithValue }) => {
+    try {
+      const response = await authService.signup(email, password, name);
+      return { ...response, email };
+    } catch (error) {
+      return rejectWithValue(error.error || error.message || 'Sign up failed');
+    }
   }
 );
 
@@ -31,26 +35,38 @@ export const verify = createAsyncThunk(
 
 export const signin = createAsyncThunk(
   'auth/signin',
-  async ({ email, password }) => {
-    const response = await authService.signin(email, password);
-    const userInfo = authService.getUserInfo();
-    return { ...response, user: userInfo };
+  async ({ email, password }, { rejectWithValue }) => {
+    try {
+      const response = await authService.signin(email, password);
+      const userInfo = authService.getUserInfo();
+      return { ...response, user: userInfo };
+    } catch (error) {
+      return rejectWithValue(error.error || error.message || 'Sign in failed');
+    }
   }
 );
 
 export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
-  async ({ email }) => {
-    const response = await authService.forgotPassword(email);
-    return { ...response, email };
+  async ({ email }, { rejectWithValue }) => {
+    try {
+      const response = await authService.forgotPassword(email);
+      return { ...response, email };
+    } catch (error) {
+      return rejectWithValue(error.error || error.message || 'Forgot password failed');
+    }
   }
 );
 
 export const resetPassword = createAsyncThunk(
   'auth/resetPassword',
-  async ({ email, code, newPassword }) => {
-    const response = await authService.resetPassword(email, code, newPassword);
-    return response;
+  async ({ email, code, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await authService.resetPassword(email, code, newPassword);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.error || error.message || 'Reset password failed');
+    }
   }
 );
 
@@ -87,7 +103,7 @@ const authSlice = createSlice({
       })
       .addCase(signup.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
       .addCase(verify.pending, (state) => {
         state.loading = true;
@@ -112,7 +128,7 @@ const authSlice = createSlice({
       })
       .addCase(signin.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
       .addCase(forgotPassword.pending, (state) => {
         state.loading = true;
@@ -124,7 +140,7 @@ const authSlice = createSlice({
       })
       .addCase(forgotPassword.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
       .addCase(resetPassword.pending, (state) => {
         state.loading = true;
@@ -136,7 +152,7 @@ const authSlice = createSlice({
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
   },
 });

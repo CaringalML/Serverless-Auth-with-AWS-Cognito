@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { signin } from '../store/slices/authSlice';
+import { signin, clearError } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
 
 const SignIn = () => {
@@ -45,6 +45,11 @@ const SignIn = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    
+    // Clear server error when user starts typing
+    if (error) {
+      dispatch(clearError());
+    }
   };
   
   const handleBlur = (field) => {

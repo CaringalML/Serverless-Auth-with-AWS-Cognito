@@ -24,12 +24,21 @@ __pycache__/
 frontend-auth/node_modules/
 
 # Environment files
+frontend-auth/.env
 frontend-auth/.env.local
 frontend-auth/.env.production
 
 # Build directories
 frontend-auth/build/
 frontend-auth/dist/
+
+# Terraform state and config files in frontend
+frontend-auth/frontend-terraform/*.tfstate
+frontend-auth/frontend-terraform/*.tfstate.*
+frontend-auth/frontend-terraform/.terraform/
+frontend-auth/frontend-terraform/.terraform.lock.hcl
+frontend-auth/frontend-terraform/terraform.tfvars
+frontend-auth/frontend-terraform/*.auto.tfvars
 
 # IDE
 .vscode/

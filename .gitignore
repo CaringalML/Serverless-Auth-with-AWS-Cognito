@@ -1,0 +1,43 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+*.tfplan
+tfplan
+
+# Lambda build artifacts
+*.zip
+lambda_layer.zip
+*_lambda.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Node modules
+frontend-auth/node_modules/
+
+# Environment files
+frontend-auth/.env.local
+frontend-auth/.env.production
+
+# Build directories
+frontend-auth/build/
+frontend-auth/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

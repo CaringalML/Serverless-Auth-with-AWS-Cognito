@@ -4,8 +4,21 @@ import { API_ENDPOINTS } from '../config/api';
 class AuthService {
   constructor() {
     this.token = this.getTokenFromCookie();
+    this.isRefreshing = false;
+    this.refreshPromise = null;
+    this.lastActivityTime = Date.now();
+    this.inactivityTimeout = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+    this.warningTimeout = 5 * 60 * 1000; // Show warning 5 minutes before logout
+    this.activityCheckInterval = null;
+    this.warningTimer = null;
+    this.logoutTimer = null;
+    this.onInactivityWarning = null;
+    this.onInactivityLogout = null;
+    
     this.cleanupLocalStorage(); // Clean up any old localStorage tokens
     this.setupAxiosInterceptors();
+    this.startActivityTracking();
+    this.startProactiveRefresh();
   }
 
   // Cookie utility methods
@@ -63,11 +76,26 @@ class AuthService {
 
     axios.interceptors.response.use(
       (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          this.logout();
-          window.location.href = '/signin';
+      async (error) => {
+        const originalRequest = error.config;
+        
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          try {
+            await this.refreshAccessToken();
+            // Update the authorization header with new token
+            originalRequest.headers.Authorization = `Bearer ${this.getToken()}`;
+            // Retry the original request
+            return axios(originalRequest);
+          } catch (refreshError) {
+            // Refresh failed, logout user
+            this.logout();
+            window.location.href = '/signin';
+            return Promise.reject(refreshError);
+          }
         }
+        
         return Promise.reject(error);
       }
     );
@@ -109,6 +137,10 @@ class AuthService {
         this.setToken(response.data.accessToken);
         this.setRefreshToken(response.data.refreshToken);
         this.setIdToken(response.data.idToken);
+        
+        // Start activity tracking after successful login
+        this.updateLastActivity();
+        this.startActivityTracking();
       }
       
       return response.data;
@@ -187,6 +219,8 @@ class AuthService {
     this.deleteCookie('accessToken');
     this.deleteCookie('refreshToken');
     this.deleteCookie('idToken');
+    // Stop activity tracking
+    this.stopActivityTracking();
   }
 
   decodeToken(token) {
@@ -209,6 +243,187 @@ class AuthService {
   getUserInfo() {
     const idToken = this.getIdToken();
     return this.decodeToken(idToken);
+  }
+
+  async refreshAccessToken() {
+    // Prevent multiple simultaneous refresh requests
+    if (this.isRefreshing) {
+      return this.refreshPromise;
+    }
+
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    this.isRefreshing = true;
+    
+    try {
+      this.refreshPromise = axios.post(API_ENDPOINTS.REFRESH, {
+        refreshToken: refreshToken
+      });
+      
+      const response = await this.refreshPromise;
+      
+      if (response.data.accessToken) {
+        this.setToken(response.data.accessToken);
+        if (response.data.idToken) {
+          this.setIdToken(response.data.idToken);
+        }
+      }
+      
+      return response.data;
+    } catch (error) {
+      // If refresh fails, clear all tokens
+      this.logout();
+      throw error;
+    } finally {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
+    }
+  }
+
+  isTokenExpiringSoon(token, minutesBeforeExpiry = 5) {
+    if (!token) return true;
+    
+    try {
+      const decoded = this.decodeToken(token);
+      if (!decoded || !decoded.exp) return true;
+      
+      const now = Math.floor(Date.now() / 1000);
+      const expiry = decoded.exp;
+      const timeUntilExpiry = expiry - now;
+      
+      return timeUntilExpiry < (minutesBeforeExpiry * 60);
+    } catch (error) {
+      return true;
+    }
+  }
+
+  async checkAndRefreshToken() {
+    const accessToken = this.getToken();
+    
+    if (this.isTokenExpiringSoon(accessToken)) {
+      try {
+        await this.refreshAccessToken();
+        return true;
+      } catch (error) {
+        console.error('Failed to refresh token:', error);
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  startProactiveRefresh() {
+    // Check token every 5 minutes and refresh if needed (only if user is active)
+    setInterval(async () => {
+      if (this.isAuthenticated() && !this.isRefreshing && this.isUserActive()) {
+        await this.checkAndRefreshToken();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  // Activity tracking methods
+  updateLastActivity() {
+    this.lastActivityTime = Date.now();
+    this.resetInactivityTimers();
+  }
+
+  isUserActive() {
+    const timeSinceLastActivity = Date.now() - this.lastActivityTime;
+    return timeSinceLastActivity < this.inactivityTimeout;
+  }
+
+  getTimeUntilInactive() {
+    const timeSinceLastActivity = Date.now() - this.lastActivityTime;
+    return Math.max(0, this.inactivityTimeout - timeSinceLastActivity);
+  }
+
+  startActivityTracking() {
+    if (!this.isAuthenticated()) return;
+
+    // Track user activity events
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    const activityHandler = () => {
+      this.updateLastActivity();
+    };
+
+    // Add activity listeners
+    activityEvents.forEach(event => {
+      document.addEventListener(event, activityHandler, { passive: true });
+    });
+
+    // Store reference to remove listeners later
+    this.activityHandler = activityHandler;
+    this.activityEvents = activityEvents;
+
+    // Set initial timers
+    this.resetInactivityTimers();
+  }
+
+  stopActivityTracking() {
+    if (this.activityHandler && this.activityEvents) {
+      this.activityEvents.forEach(event => {
+        document.removeEventListener(event, this.activityHandler);
+      });
+    }
+
+    // Clear all timers
+    if (this.warningTimer) clearTimeout(this.warningTimer);
+    if (this.logoutTimer) clearTimeout(this.logoutTimer);
+    if (this.activityCheckInterval) clearInterval(this.activityCheckInterval);
+  }
+
+  resetInactivityTimers() {
+    // Clear existing timers
+    if (this.warningTimer) clearTimeout(this.warningTimer);
+    if (this.logoutTimer) clearTimeout(this.logoutTimer);
+
+    if (!this.isAuthenticated()) return;
+
+    // Set warning timer (5 minutes before logout)
+    this.warningTimer = setTimeout(() => {
+      if (this.onInactivityWarning) {
+        this.onInactivityWarning(this.warningTimeout / 1000); // Pass seconds until logout
+      }
+    }, this.inactivityTimeout - this.warningTimeout);
+
+    // Set logout timer
+    this.logoutTimer = setTimeout(() => {
+      this.handleInactivityLogout();
+    }, this.inactivityTimeout);
+  }
+
+  handleInactivityLogout() {
+    console.log('User logged out due to inactivity');
+    
+    if (this.onInactivityLogout) {
+      this.onInactivityLogout();
+    }
+    
+    this.logout();
+    
+    // Redirect to login page
+    if (window.location.pathname !== '/signin') {
+      window.location.href = '/signin?reason=inactivity';
+    }
+  }
+
+  // Event handlers for UI components to hook into
+  setInactivityWarningCallback(callback) {
+    this.onInactivityWarning = callback;
+  }
+
+  setInactivityLogoutCallback(callback) {
+    this.onInactivityLogout = callback;
+  }
+
+  // Extend session (called when user responds to warning)
+  extendSession() {
+    this.updateLastActivity();
   }
 }
 

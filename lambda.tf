@@ -43,6 +43,10 @@ locals {
       handler = "handler.lambda_handler"
       timeout = 10
     }
+    refresh = {
+      handler = "handler.lambda_handler"
+      timeout = 10
+    }
   }
 }
 

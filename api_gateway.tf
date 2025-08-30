@@ -60,6 +60,10 @@ locals {
       path_part = "resend-verification"
       method    = "POST"
     }
+    refresh = {
+      path_part = "refresh"
+      method    = "POST"
+    }
   }
 }
 

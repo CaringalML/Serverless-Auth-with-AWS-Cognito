@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
   FORGOT_PASSWORD: `${API_BASE_URL}/auth/forgot-password`,
   RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
   RESEND_VERIFICATION: `${API_BASE_URL}/auth/resend-verification`,
+  REFRESH: `${API_BASE_URL}/auth/refresh`,
 };
 
 export default API_BASE_URL;

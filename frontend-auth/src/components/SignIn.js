@@ -64,6 +64,12 @@ const SignIn = () => {
     const emailValidation = validateEmail(formData.email);
     const passwordError = formData.password ? '' : 'Password is required';
     
+    // Update field errors for display
+    setFieldErrors({
+      email: emailValidation.error,
+      password: passwordError
+    });
+    
     if (!emailValidation.isValid || passwordError) {
       return;
     }

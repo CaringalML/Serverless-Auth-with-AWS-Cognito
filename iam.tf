@@ -202,7 +202,7 @@ resource "aws_iam_role" "dashboard_viewer" {
         }
       },
       {
-        Action = "sts:AssumeRole" 
+        Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"

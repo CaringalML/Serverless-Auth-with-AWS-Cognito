@@ -52,7 +52,7 @@ resource "aws_sns_topic_policy" "security_alerts_policy" {
         Principal = {
           Service = "cloudwatch.amazonaws.com"
         }
-        Action = "SNS:Publish"
+        Action   = "SNS:Publish"
         Resource = aws_sns_topic.security_alerts.arn
         Condition = {
           StringEquals = {
@@ -75,7 +75,7 @@ resource "aws_sns_topic_policy" "system_alerts_policy" {
         Principal = {
           Service = "cloudwatch.amazonaws.com"
         }
-        Action = "SNS:Publish"
+        Action   = "SNS:Publish"
         Resource = aws_sns_topic.system_alerts.arn
         Condition = {
           StringEquals = {
@@ -105,7 +105,7 @@ resource "aws_cloudwatch_metric_alarm" "suspicious_login_activity" {
     metric {
       metric_name = "IncomingLogEvents"
       namespace   = "AWS/Logs"
-      period      = 600  # 10 minutes
+      period      = 600 # 10 minutes
       stat        = "Sum"
 
       dimensions = {
@@ -213,7 +213,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
   namespace           = "AWS/Lambda"
   period              = "300"
   statistic           = "Average"
-  threshold           = each.value.timeout * 1000 * 0.8  # 80% of timeout
+  threshold           = each.value.timeout * 1000 * 0.8 # 80% of timeout
   alarm_description   = "Lambda ${each.key} duration approaching timeout"
   alarm_actions       = [aws_sns_topic.system_alerts.arn]
 
@@ -248,7 +248,7 @@ resource "aws_cloudwatch_metric_alarm" "low_signup_conversion" {
     metric {
       metric_name = "Invocations"
       namespace   = "AWS/Lambda"
-      period      = 86400  # 24 hours
+      period      = 86400 # 24 hours
       stat        = "Sum"
 
       dimensions = {
@@ -272,6 +272,6 @@ output "security_alerts_topic_arn" {
 }
 
 output "system_alerts_topic_arn" {
-  description = "ARN of the system alerts SNS topic"  
+  description = "ARN of the system alerts SNS topic"
   value       = aws_sns_topic.system_alerts.arn
 }

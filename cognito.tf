@@ -18,8 +18,8 @@ resource "aws_cognito_user_pool" "main" {
 
   # Custom email verification template
   verification_message_template {
-    default_email_option  = "CONFIRM_WITH_CODE"
-    email_subject         = "Welcome to ${var.project_name} - Verify Your Account"
+    default_email_option = "CONFIRM_WITH_CODE"
+    email_subject        = "Welcome to ${var.project_name} - Verify Your Account"
     email_message_by_link = templatefile("${path.module}/templates/verification_email.html", {
       project_name = var.project_name
       environment  = var.environment

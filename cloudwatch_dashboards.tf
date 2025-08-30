@@ -56,10 +56,10 @@ resource "aws_cloudwatch_dashboard" "security_overview" {
         height = 6
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-security_event' | fields @timestamp, ipAddress, details\n| filter event = \"INACTIVITY_LOGOUT\"\n| stats count() by ipAddress\n| sort count desc\n| limit 10"
-          region  = var.aws_region
-          title   = "Inactivity Logouts by IP"
-          view    = "table"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-security_event' | fields @timestamp, ipAddress, details\n| filter event = \"INACTIVITY_LOGOUT\"\n| stats count() by ipAddress\n| sort count desc\n| limit 10"
+          region = var.aws_region
+          title  = "Inactivity Logouts by IP"
+          view   = "table"
         }
       },
       {
@@ -70,10 +70,10 @@ resource "aws_cloudwatch_dashboard" "security_overview" {
         height = 8
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit_log' | fields @timestamp, ipAddress, details.email\n| filter success = false\n| stats count() by ipAddress\n| sort count desc\n| limit 20"
-          region  = var.aws_region
-          title   = "Top Failed Login IP Addresses"
-          view    = "table"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit_log' | fields @timestamp, ipAddress, details.email\n| filter success = false\n| stats count() by ipAddress\n| sort count desc\n| limit 20"
+          region = var.aws_region
+          title  = "Top Failed Login IP Addresses"
+          view   = "table"
         }
       },
       {
@@ -84,10 +84,10 @@ resource "aws_cloudwatch_dashboard" "security_overview" {
         height = 8
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-security-alerts' | fields @timestamp, event, severity, ipAddress, details\n| filter severity in [\"high\", \"critical\"]\n| sort @timestamp desc\n| limit 50"
-          region  = var.aws_region
-          title   = "Recent Security Alerts"
-          view    = "table"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-security-alerts' | fields @timestamp, event, severity, ipAddress, details\n| filter severity in [\"high\", \"critical\"]\n| sort @timestamp desc\n| limit 50"
+          region = var.aws_region
+          title  = "Recent Security Alerts"
+          view   = "table"
         }
       }
     ]
@@ -169,10 +169,10 @@ resource "aws_cloudwatch_dashboard" "user_activity" {
         height = 8
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-user_activity' | fields @timestamp, action, details.page\n| filter action = \"USER_ACTIVE\"\n| stats count() by details.page\n| sort count desc"
-          region  = var.aws_region
-          title   = "Page Views by Route"
-          view    = "table"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-user_activity' | fields @timestamp, action, details.page\n| filter action = \"USER_ACTIVE\"\n| stats count() by details.page\n| sort count desc"
+          region = var.aws_region
+          title  = "Page Views by Route"
+          view   = "table"
         }
       },
       {
@@ -183,10 +183,10 @@ resource "aws_cloudwatch_dashboard" "user_activity" {
         height = 8
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-api_call' | fields @timestamp, duration, success\n| filter success = true\n| stats avg(duration), max(duration), min(duration) by bin(5m)"
-          region  = var.aws_region
-          title   = "API Response Times"
-          view    = "timeSeries"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-api_call' | fields @timestamp, duration, success\n| filter success = true\n| stats avg(duration), max(duration), min(duration) by bin(5m)"
+          region = var.aws_region
+          title  = "API Response Times"
+          view   = "timeSeries"
         }
       }
     ]
@@ -294,10 +294,10 @@ resource "aws_cloudwatch_dashboard" "system_health" {
         height = 6
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-token_event' | fields @timestamp, event, success\n| filter event = \"TOKEN_REFRESH\"\n| stats count() by success, bin(1h)\n| sort @timestamp desc"
-          region  = var.aws_region
-          title   = "Token Refresh Success Rate"
-          view    = "timeSeries"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-token_event' | fields @timestamp, event, success\n| filter event = \"TOKEN_REFRESH\"\n| stats count() by success, bin(1h)\n| sort @timestamp desc"
+          region = var.aws_region
+          title  = "Token Refresh Success Rate"
+          view   = "timeSeries"
         }
       },
       {
@@ -308,10 +308,10 @@ resource "aws_cloudwatch_dashboard" "system_health" {
         height = 6
 
         properties = {
-          query   = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-error' | fields @timestamp, error.message, context, userAction\n| sort @timestamp desc\n| limit 100"
-          region  = var.aws_region
-          title   = "Recent System Errors"
-          view    = "table"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-error' | fields @timestamp, error.message, context, userAction\n| sort @timestamp desc\n| limit 100"
+          region = var.aws_region
+          title  = "Recent System Errors"
+          view   = "table"
         }
       }
     ]
@@ -331,12 +331,12 @@ resource "aws_cloudwatch_metric_alarm" "failed_login_spike" {
   threshold           = "10"
   alarm_description   = "This metric monitors failed login attempts"
   alarm_actions       = [] # Add SNS topic ARN for notifications
-  
+
   metric_name = "IncomingLogEvents"
   namespace   = "AWS/Logs"
   period      = "300"
   statistic   = "Sum"
-  
+
   dimensions = {
     LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-audit_log"
   }

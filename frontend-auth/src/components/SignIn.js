@@ -21,7 +21,6 @@ const SignIn = () => {
   });
   
   const [showPassword, setShowPassword] = useState(false);
-  const [persistentError, setPersistentError] = useState('');
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -39,15 +38,7 @@ const SignIn = () => {
       const passwordError = formData.password ? '' : 'Password is required';
       setFieldErrors(prev => ({ ...prev, password: passwordError }));
     }
-    // Note: Server errors (auth.error) are NOT cleared here - they persist until manually dismissed
   }, [formData, touched]);
-
-  // Sync server error to persistent local state to prevent any disappearing
-  useEffect(() => {
-    if (error) {
-      setPersistentError(error);
-    }
-  }, [error]);
 
   const handleChange = (e) => {
     setFormData({
@@ -86,14 +77,12 @@ const SignIn = () => {
       return;
     }
     
-    // Note: Server errors will persist during sign-in attempt and will be replaced only if sign-in fails
     const result = await dispatch(signin({
       email: formData.email,
       password: formData.password,
     }));
 
     if (signin.fulfilled.match(result)) {
-      setPersistentError(''); // Clear persistent error on successful sign-in
       navigate('/dashboard');
     }
   };
@@ -130,27 +119,13 @@ const SignIn = () => {
           <p className="text-gray-600 font-medium text-lg">Sign in to your account</p>
         </div>
         
-        {persistentError && (
-          <div className="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-lg mb-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 mr-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium">{persistentError}</span>
-              </div>
-              <button
-                onClick={() => {
-                  dispatch(clearError());
-                  setPersistentError('');
-                }}
-                className="ml-4 text-red-400 hover:text-red-600 transition-colors duration-200"
-                aria-label="Dismiss error"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        {error && (
+          <div className="bg-red-50/80 backdrop-blur border border-red-200/50 text-red-600 px-4 py-3 rounded-xl mb-6 shadow-sm">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              {error}
             </div>
           </div>
         )}

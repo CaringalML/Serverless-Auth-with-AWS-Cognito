@@ -43,7 +43,7 @@ export const signin = createAsyncThunk(
     } catch (error) {
       console.log('SignIn Error:', error); // Debug log
       // Always return a consistent user-friendly error message for sign-in failures
-      return rejectWithValue('Incorrect credentials please try again');
+      return rejectWithValue('Invalid email or password');
     }
   }
 );

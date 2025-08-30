@@ -26,8 +26,8 @@ resource "aws_cognito_user_pool" "main" {
   schema {
     name                = "email"
     attribute_data_type = "String"
-    mutable            = false
-    required           = true
+    mutable             = false
+    required            = true
 
     string_attribute_constraints {
       min_length = 1
@@ -38,8 +38,8 @@ resource "aws_cognito_user_pool" "main" {
   schema {
     name                = "name"
     attribute_data_type = "String"
-    mutable            = true
-    required           = false
+    mutable             = true
+    required            = false
 
     string_attribute_constraints {
       min_length = 1

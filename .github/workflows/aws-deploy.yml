@@ -102,7 +102,7 @@ jobs:
 
       # Deploy to S3
       - name: Deploy to S3
-        run: aws s3 sync ./frontend-auth/build s3://digitize-pro-frontend/react-build --delete
+        run: aws s3 sync ./frontend-auth/build s3://react-artifact/react-build --delete
 
       # Invalidate CloudFront
       - name: Invalidate CloudFront

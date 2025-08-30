@@ -1,9 +1,30 @@
+# CloudWatch Log Group for API Gateway Access Logs
+resource "aws_cloudwatch_log_group" "api_gateway_logs" {
+  count = var.api_gateway_logging_enabled ? 1 : 0
+
+  name              = "/aws/apigateway/${var.project_name}-${var.environment}-api"
+  retention_in_days = 14
+  skip_destroy      = false
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-api-logs"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
 resource "aws_api_gateway_rest_api" "main" {
   name        = "${var.project_name}-${var.environment}-api"
-  description = "Authentication API"
+  description = var.api_gateway_description
 
   endpoint_configuration {
-    types = ["REGIONAL"]
+    types = [var.api_gateway_endpoint_type]
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-api"
+    Environment = var.environment
+    Project     = var.project_name
   }
 }
 
@@ -107,6 +128,7 @@ resource "aws_api_gateway_method_response" "options" {
     "method.response.header.Access-Control-Allow-Headers" = true
     "method.response.header.Access-Control-Allow-Methods" = true
     "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Max-Age"       = true
   }
 
   response_models = {
@@ -123,9 +145,10 @@ resource "aws_api_gateway_integration_response" "options" {
   status_code = aws_api_gateway_method_response.options[each.key].status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS,POST,PUT,DELETE'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers" = "'${var.cors_allow_headers}'"
+    "method.response.header.Access-Control-Allow-Methods" = "'${var.cors_allow_methods}'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'${var.cors_allow_origin}'"
+    "method.response.header.Access-Control-Max-Age"       = "'${var.cors_max_age}'"
   }
 
   depends_on = [
@@ -162,5 +185,57 @@ resource "aws_api_gateway_deployment" "main" {
 resource "aws_api_gateway_stage" "main" {
   deployment_id = aws_api_gateway_deployment.main.id
   rest_api_id   = aws_api_gateway_rest_api.main.id
-  stage_name    = var.environment
+  stage_name    = var.api_stage_name != null ? var.api_stage_name : var.environment
+  description   = var.api_stage_description
+
+  # Enable detailed CloudWatch metrics
+  xray_tracing_enabled = var.api_gateway_data_trace_enabled
+
+  # Access logging configuration
+  dynamic "access_log_settings" {
+    for_each = var.api_gateway_logging_enabled ? [1] : []
+    content {
+      destination_arn = aws_cloudwatch_log_group.api_gateway_logs[0].arn
+      format = jsonencode({
+        requestId      = "$context.requestId"
+        ip             = "$context.identity.sourceIp"
+        caller         = "$context.identity.caller"
+        user           = "$context.identity.user"
+        requestTime    = "$context.requestTime"
+        httpMethod     = "$context.httpMethod"
+        resourcePath   = "$context.resourcePath"
+        status         = "$context.status"
+        protocol       = "$context.protocol"
+        responseLength = "$context.responseLength"
+        error          = "$context.error.message"
+        errorType      = "$context.error.messageString"
+      })
+    }
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-api-stage"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# Method settings for logging and monitoring
+resource "aws_api_gateway_method_settings" "all" {
+  count = var.api_gateway_logging_enabled ? 1 : 0
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  stage_name  = aws_api_gateway_stage.main.stage_name
+  method_path = "*/*"
+
+  settings {
+    # Enable CloudWatch logging
+    logging_level   = var.api_gateway_log_level
+    data_trace_enabled = var.api_gateway_data_trace_enabled
+    metrics_enabled = var.api_gateway_metrics_enabled
+
+    # Throttling settings
+    throttling_rate_limit  = var.api_throttle_rate_limit
+    throttling_burst_limit = var.api_throttle_burst_limit
+  }
 }

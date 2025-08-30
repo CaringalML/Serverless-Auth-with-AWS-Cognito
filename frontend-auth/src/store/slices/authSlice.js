@@ -42,9 +42,8 @@ export const signin = createAsyncThunk(
       return { ...response, user: userInfo };
     } catch (error) {
       console.log('SignIn Error:', error); // Debug log
-      const errorMessage = error.error || error.message || 'Sign in failed';
-      console.log('Error Message:', errorMessage); // Debug log
-      return rejectWithValue(errorMessage);
+      // Always return a consistent user-friendly error message for sign-in failures
+      return rejectWithValue('Incorrect credentials please try again');
     }
   }
 );

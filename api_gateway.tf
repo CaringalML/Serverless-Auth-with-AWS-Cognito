@@ -125,10 +125,11 @@ resource "aws_api_gateway_method_response" "options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
-    "method.response.header.Access-Control-Max-Age"       = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
+    "method.response.header.Access-Control-Max-Age"           = true
   }
 
   response_models = {
@@ -145,10 +146,11 @@ resource "aws_api_gateway_integration_response" "options" {
   status_code = aws_api_gateway_method_response.options[each.key].status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'${var.cors_allow_headers}'"
-    "method.response.header.Access-Control-Allow-Methods" = "'${var.cors_allow_methods}'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'${var.cors_allow_origin}'"
-    "method.response.header.Access-Control-Max-Age"       = "'${var.cors_max_age}'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'${var.cors_allow_headers}'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'${var.cors_allow_methods}'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_allow_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'${var.cors_allow_credentials}'"
+    "method.response.header.Access-Control-Max-Age"           = "'${var.cors_max_age}'"
   }
 
   depends_on = [

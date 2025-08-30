@@ -77,9 +77,13 @@ resource "aws_lambda_function" "auth_functions" {
 
   environment {
     variables = {
-      COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.main.id
-      COGNITO_USER_POOL_ID = aws_cognito_user_pool.main.id
-      USERS_TABLE          = aws_dynamodb_table.users.name
+      COGNITO_CLIENT_ID       = aws_cognito_user_pool_client.main.id
+      COGNITO_USER_POOL_ID    = aws_cognito_user_pool.main.id
+      USERS_TABLE             = aws_dynamodb_table.users.name
+      CORS_ALLOW_ORIGIN       = var.cors_allow_origin
+      CORS_ALLOW_HEADERS      = var.cors_allow_headers
+      CORS_ALLOW_METHODS      = var.cors_allow_methods
+      CORS_ALLOW_CREDENTIALS  = var.cors_allow_credentials
     }
   }
 

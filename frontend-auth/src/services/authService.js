@@ -3,8 +3,48 @@ import { API_ENDPOINTS } from '../config/api';
 
 class AuthService {
   constructor() {
-    this.token = localStorage.getItem('accessToken');
+    this.token = this.getTokenFromCookie();
+    this.cleanupLocalStorage(); // Clean up any old localStorage tokens
     this.setupAxiosInterceptors();
+  }
+
+  // Cookie utility methods
+  setCookie(name, value, days = 7) {
+    const maxAge = days * 24 * 60 * 60; // Convert days to seconds
+    let cookieString = `${name}=${value}; Max-Age=${maxAge}; Path=/; SameSite=Strict`;
+    
+    // Add Secure flag for HTTPS
+    if (window.location.protocol === 'https:') {
+      cookieString += '; Secure';
+    }
+    
+    document.cookie = cookieString;
+  }
+
+  getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  deleteCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict`;
+  }
+
+  getTokenFromCookie() {
+    return this.getCookie('accessToken');
+  }
+
+  cleanupLocalStorage() {
+    // Remove any old localStorage tokens from previous versions
+    try {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('idToken');
+    } catch (e) {
+      // Ignore errors if localStorage is not available
+    }
   }
 
   setupAxiosInterceptors() {
@@ -114,27 +154,27 @@ class AuthService {
 
   setToken(token) {
     this.token = token;
-    localStorage.setItem('accessToken', token);
+    this.setCookie('accessToken', token, 7); // 7 days
   }
 
   setRefreshToken(token) {
-    localStorage.setItem('refreshToken', token);
+    this.setCookie('refreshToken', token, 30); // 30 days for refresh token
   }
 
   setIdToken(token) {
-    localStorage.setItem('idToken', token);
+    this.setCookie('idToken', token, 7); // 7 days
   }
 
   getToken() {
-    return this.token || localStorage.getItem('accessToken');
+    return this.token || this.getCookie('accessToken');
   }
 
   getRefreshToken() {
-    return localStorage.getItem('refreshToken');
+    return this.getCookie('refreshToken');
   }
 
   getIdToken() {
-    return localStorage.getItem('idToken');
+    return this.getCookie('idToken');
   }
 
   isAuthenticated() {
@@ -143,9 +183,10 @@ class AuthService {
 
   logout() {
     this.token = null;
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('idToken');
+    // Clear cookies
+    this.deleteCookie('accessToken');
+    this.deleteCookie('refreshToken');
+    this.deleteCookie('idToken');
   }
 
   decodeToken(token) {

@@ -41,9 +41,9 @@ variable "api_gateway_endpoint_type" {
 
 # CORS Configuration Variables
 variable "cors_allow_origin" {
-  description = "CORS allow origin header value. Use * to allow all origins"
+  description = "CORS allow origin header value. Must be specific origin when using credentials (not *)"
   type        = string
-  default     = "*"
+  default     = "https://d1gjet2p4vcoj0.cloudfront.net"
 }
 
 variable "cors_allow_headers" {
@@ -56,6 +56,12 @@ variable "cors_allow_methods" {
   description = "CORS allow methods"
   type        = string
   default     = "GET,OPTIONS,POST,PUT,DELETE"
+}
+
+variable "cors_allow_credentials" {
+  description = "CORS allow credentials for cookie support"
+  type        = bool
+  default     = true
 }
 
 variable "cors_max_age" {

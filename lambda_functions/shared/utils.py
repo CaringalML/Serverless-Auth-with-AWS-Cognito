@@ -1,5 +1,6 @@
 import json
 import boto3
+import os
 from botocore.exceptions import ClientError
 
 def create_response(status_code, body):
@@ -7,9 +8,10 @@ def create_response(status_code, body):
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            'Access-Control-Allow-Origin': os.environ.get('CORS_ALLOW_ORIGIN'),
+            'Access-Control-Allow-Headers': os.environ.get('CORS_ALLOW_HEADERS'),
+            'Access-Control-Allow-Methods': os.environ.get('CORS_ALLOW_METHODS'),
+            'Access-Control-Allow-Credentials': os.environ.get('CORS_ALLOW_CREDENTIALS')
         },
         'body': json.dumps(body)
     }

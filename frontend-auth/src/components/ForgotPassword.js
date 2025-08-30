@@ -31,11 +31,6 @@ const ForgotPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Clear any previous server errors when attempting new submit
-    if (error) {
-      dispatch(clearError());
-    }
-    
     const result = await dispatch(forgotPassword({ email }));
 
     if (forgotPassword.fulfilled.match(result)) {

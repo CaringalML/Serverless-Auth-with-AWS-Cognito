@@ -78,11 +78,6 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Clear any previous server errors when attempting new submit
-    if (error) {
-      dispatch(clearError());
-    }
-    
     // Touch all fields to show validation
     setTouched({
       name: true,

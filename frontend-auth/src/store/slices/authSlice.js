@@ -41,7 +41,10 @@ export const signin = createAsyncThunk(
       const userInfo = authService.getUserInfo();
       return { ...response, user: userInfo };
     } catch (error) {
-      return rejectWithValue(error.error || error.message || 'Sign in failed');
+      console.log('SignIn Error:', error); // Debug log
+      const errorMessage = error.error || error.message || 'Sign in failed';
+      console.log('Error Message:', errorMessage); // Debug log
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -95,11 +98,12 @@ const authSlice = createSlice({
     builder
       .addCase(signup.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        // Don't auto-clear error - let it persist for user to see
       })
       .addCase(signup.fulfilled, (state, action) => {
         state.loading = false;
         state.verificationEmail = action.payload.email;
+        state.error = null; // Clear error only on successful signup
       })
       .addCase(signup.rejected, (state, action) => {
         state.loading = false;
@@ -107,11 +111,12 @@ const authSlice = createSlice({
       })
       .addCase(verify.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        // Don't auto-clear error - let it persist for user to see
       })
       .addCase(verify.fulfilled, (state) => {
         state.loading = false;
         state.verificationEmail = null;
+        state.error = null; // Clear error only on successful verification
       })
       .addCase(verify.rejected, (state, action) => {
         state.loading = false;
@@ -119,24 +124,29 @@ const authSlice = createSlice({
       })
       .addCase(signin.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        // Don't auto-clear error - let it persist for user to see
       })
       .addCase(signin.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.error = null; // Clear error only on successful signin
       })
       .addCase(signin.rejected, (state, action) => {
         state.loading = false;
+        console.log('SignIn Rejected - Payload:', action.payload); // Debug log
+        console.log('SignIn Rejected - Error:', action.error); // Debug log
         state.error = action.payload || action.error.message;
+        console.log('Final Error State:', state.error); // Debug log
       })
       .addCase(forgotPassword.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        // Don't auto-clear error - let it persist for user to see
       })
       .addCase(forgotPassword.fulfilled, (state, action) => {
         state.loading = false;
         state.verificationEmail = action.payload.email;
+        state.error = null; // Clear error only on successful request
       })
       .addCase(forgotPassword.rejected, (state, action) => {
         state.loading = false;
@@ -144,11 +154,12 @@ const authSlice = createSlice({
       })
       .addCase(resetPassword.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        // Don't auto-clear error - let it persist for user to see
       })
       .addCase(resetPassword.fulfilled, (state) => {
         state.loading = false;
         state.verificationEmail = null;
+        state.error = null; // Clear error only on successful reset
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;

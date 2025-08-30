@@ -210,7 +210,6 @@ class AuthService {
   }
 
   async signin(email, password) {
-    const startTime = Date.now();
     try {
       loggingService.logUserActivity('SIGNIN_ATTEMPT', { email: email.substring(0, 3) + '***@' + email.split('@')[1] });
       

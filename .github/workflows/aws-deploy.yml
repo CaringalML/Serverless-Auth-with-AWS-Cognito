@@ -102,7 +102,7 @@ jobs:
 
       # Deploy to S3
       - name: Deploy to S3
-        run: aws s3 sync ./frontend-auth/build s3://react-artifact/react-build --delete
+        run: aws s3 sync ./frontend-auth/build s3://serverless-auth-cognito-frontend-2025/react-build --delete
 
       # Invalidate CloudFront
       - name: Invalidate CloudFront

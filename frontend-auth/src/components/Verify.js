@@ -51,6 +51,11 @@ const Verify = () => {
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
+
+    // Auto-submit when all 6 digits are entered
+    if (value && newCode.every(digit => digit !== '')) {
+      handleAutoSubmit(newCode.join(''));
+    }
   };
 
   const handleKeyDown = (index, e) => {
@@ -71,12 +76,30 @@ const Verify = () => {
     
     setVerificationCode(newCode);
     
-    // Focus the next empty input or the last one
-    const nextEmptyIndex = newCode.findIndex(code => code === '');
-    if (nextEmptyIndex !== -1) {
-      inputRefs.current[nextEmptyIndex]?.focus();
+    // Auto-submit if all 6 digits are pasted
+    if (pastedData.length === 6 && newCode.every(digit => digit !== '')) {
+      handleAutoSubmit(newCode.join(''));
     } else {
-      inputRefs.current[5]?.focus();
+      // Focus the next empty input or the last one
+      const nextEmptyIndex = newCode.findIndex(code => code === '');
+      if (nextEmptyIndex !== -1) {
+        inputRefs.current[nextEmptyIndex]?.focus();
+      } else {
+        inputRefs.current[5]?.focus();
+      }
+    }
+  };
+
+  const handleAutoSubmit = async (code) => {
+    if (loading || !email || code.length !== 6) return;
+    
+    const result = await dispatch(verify({
+      email,
+      code,
+    }));
+
+    if (verify.fulfilled.match(result)) {
+      setIsVerified(true);
     }
   };
 
@@ -88,14 +111,7 @@ const Verify = () => {
       return;
     }
 
-    const result = await dispatch(verify({
-      email,
-      code,
-    }));
-
-    if (verify.fulfilled.match(result)) {
-      setIsVerified(true);
-    }
+    handleAutoSubmit(code);
   };
 
   const handleResend = async () => {
@@ -189,35 +205,65 @@ const Verify = () => {
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Verification Code
               </label>
-              <div className="flex justify-center space-x-2 mb-4">
-                {verificationCode.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => (inputRefs.current[index] = el)}
-                    type="text"
-                    value={digit}
-                    onChange={(e) => handleCodeChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    onPaste={index === 0 ? handlePaste : undefined}
-                    className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-                    maxLength="1"
-                    pattern="[0-9]"
-                    inputMode="numeric"
-                  />
-                ))}
+              <div className="relative">
+                <div className="flex justify-center space-x-2 mb-4">
+                  {verificationCode.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      value={digit}
+                      onChange={(e) => handleCodeChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : undefined}
+                      className={`w-12 h-12 text-center text-lg font-semibold border-2 rounded-lg focus:outline-none transition-all ${
+                        loading 
+                          ? 'border-gray-200 bg-gray-50 text-gray-400' 
+                          : 'border-gray-300 focus:border-blue-500'
+                      }`}
+                      maxLength="1"
+                      pattern="[0-9]"
+                      inputMode="numeric"
+                      disabled={loading}
+                    />
+                  ))}
+                </div>
+                {loading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-lg">
+                    <div className="flex flex-col items-center">
+                      <svg className="animate-spin h-8 w-8 text-blue-600 mb-2" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-sm text-gray-600">Verifying...</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-gray-500 text-center">
-                Enter the 6-digit code sent to your email
+              <p className="text-xs text-gray-500 text-center mb-4">
+                {loading ? 'Please wait while we verify your code...' : 'Enter the 6-digit code sent to your email'}
               </p>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || verificationCode.join('').length !== 6}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
-            >
-              {loading ? 'Verifying...' : 'Verify Email'}
-            </button>
+            {/* Optional manual verify button for fallback */}
+            {!loading && verificationCode.join('').length === 6 && (
+              <div className="mt-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-2 bg-white text-gray-500">Having trouble?</span>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="mt-3 w-full text-sm text-gray-600 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Manually verify code
+                </button>
+              </div>
+            )}
           </form>
         )}
 

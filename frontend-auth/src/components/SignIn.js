@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { signin, clearError } from '../store/slices/authSlice';
+import { signin } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
 
 const SignIn = () => {
@@ -21,26 +21,10 @@ const SignIn = () => {
   });
   
   const [showPassword, setShowPassword] = useState(false);
-  const [serverError, setServerError] = useState(null);
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
-
-  // Track server errors separately from Redux state
-  useEffect(() => {
-    if (error && !serverError) {
-      setServerError(error);
-    }
-  }, [error, serverError]);
-
-  // Clear server error only when user successfully starts typing after seeing the error
-  useEffect(() => {
-    // Clear Redux error on component unmount to prevent it from showing on next visit
-    return () => {
-      dispatch(clearError());
-    };
-  }, [dispatch]);
 
   useEffect(() => {
     // Validate email on change if touched
@@ -62,14 +46,8 @@ const SignIn = () => {
       [e.target.name]: e.target.value,
     });
     
-    // Only clear server error after user has made a meaningful change
-    // This ensures the error stays visible until the user actually tries to fix it
-    if (serverError && formData.email && formData.password) {
-      // Clear server error only when both fields have values
-      // This gives user time to see and understand the error
-      setServerError(null);
-      dispatch(clearError());
-    }
+    // Don't auto-clear server errors - let user see the message
+    // Server errors will persist until manually dismissed or successful sign-in
   };
   
   const handleBlur = (field) => {
@@ -78,10 +56,6 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Clear any previous server errors when submitting
-    setServerError(null);
-    dispatch(clearError());
     
     // Touch all fields to show validation
     setTouched({
@@ -110,14 +84,8 @@ const SignIn = () => {
 
     if (signin.fulfilled.match(result)) {
       navigate('/dashboard');
-    } else {
-      // Set server error from the failed result
-      setServerError(result.payload || 'Invalid email or password');
     }
   };
-
-  // Use serverError if available, otherwise fall back to Redux error
-  const displayError = serverError || error;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 relative overflow-hidden">
@@ -151,27 +119,13 @@ const SignIn = () => {
           <p className="text-gray-600 font-medium text-lg">Sign in to your account</p>
         </div>
         
-        {displayError && (
+        {error && (
           <div className="bg-red-50/80 backdrop-blur border border-red-200/50 text-red-600 px-4 py-3 rounded-xl mb-6 shadow-sm">
-            <div className="flex items-center justify-content-between">
-              <div className="flex items-center flex-1">
-                <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span>{displayError}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setServerError(null);
-                  dispatch(clearError());
-                }}
-                className="ml-3 text-red-400 hover:text-red-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              {error}
             </div>
           </div>
         )}

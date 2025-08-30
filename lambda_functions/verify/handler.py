@@ -31,12 +31,23 @@ def lambda_handler(event, context):
                 ConfirmationCode=code
             )
             
+            # Update user verification status in DynamoDB
             table = dynamodb.Table(os.environ['USERS_TABLE'])
-            table.update_item(
-                Key={'email': email},
-                UpdateExpression='SET verified = :val',
-                ExpressionAttributeValues={':val': True}
+            
+            # First, get the user's userId by email
+            response = table.query(
+                IndexName='EmailIndex',
+                KeyConditionExpression='email = :email',
+                ExpressionAttributeValues={':email': email}
             )
+            
+            if response['Items']:
+                user_id = response['Items'][0]['userId']
+                table.update_item(
+                    Key={'userId': user_id},
+                    UpdateExpression='SET verified = :val',
+                    ExpressionAttributeValues={':val': True}
+                )
             
             return create_response(200, {
                 'message': 'Email verified successfully',

@@ -101,6 +101,17 @@ class AuthService {
     }
   }
 
+  async resendVerification(email) {
+    try {
+      const response = await axios.post(API_ENDPOINTS.RESEND_VERIFICATION, {
+        email,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
+
   setToken(token) {
     this.token = token;
     localStorage.setItem('accessToken', token);

@@ -19,9 +19,13 @@ export const signup = createAsyncThunk(
 
 export const verify = createAsyncThunk(
   'auth/verify',
-  async ({ email, code }) => {
-    const response = await authService.verify(email, code);
-    return response;
+  async ({ email, code }, { rejectWithValue }) => {
+    try {
+      const response = await authService.verify(email, code);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || error.error || 'Verification failed');
+    }
   }
 );
 
@@ -95,7 +99,7 @@ const authSlice = createSlice({
       })
       .addCase(verify.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
       .addCase(signin.pending, (state) => {
         state.loading = true;

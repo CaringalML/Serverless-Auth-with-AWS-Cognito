@@ -35,6 +35,10 @@ locals {
       path_part = "reset-password"
       method    = "POST"
     }
+    resend_verification = {
+      path_part = "resend-verification"
+      method    = "POST"
+    }
   }
 }
 

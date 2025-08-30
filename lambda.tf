@@ -39,6 +39,10 @@ locals {
       handler = "handler.lambda_handler"
       timeout = 10
     }
+    resend_verification = {
+      handler = "handler.lambda_handler"
+      timeout = 10
+    }
   }
 }
 
@@ -54,68 +58,6 @@ data "archive_file" "lambda_functions" {
   excludes = ["__pycache__", "*.pyc"]
 }
 
-resource "aws_iam_role" "lambda_role" {
-  name = "${var.project_name}-${var.environment}-lambda-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy" "lambda_policy" {
-  name = "${var.project_name}-${var.environment}-lambda-policy"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "arn:aws:logs:*:*:*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "cognito-idp:SignUp",
-          "cognito-idp:ConfirmSignUp",
-          "cognito-idp:InitiateAuth",
-          "cognito-idp:ForgotPassword",
-          "cognito-idp:ConfirmForgotPassword",
-          "cognito-idp:GetUser"
-        ]
-        Resource = aws_cognito_user_pool.main.arn
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "dynamodb:PutItem",
-          "dynamodb:GetItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:Query",
-          "dynamodb:Scan"
-        ]
-        Resource = [
-          aws_dynamodb_table.users.arn,
-          "${aws_dynamodb_table.users.arn}/index/*"
-        ]
-      }
-    ]
-  })
-}
 
 resource "aws_lambda_function" "auth_functions" {
   for_each = local.lambda_functions
@@ -142,7 +84,7 @@ resource "aws_lambda_function" "auth_functions" {
   }
 
   depends_on = [
-    aws_iam_role_policy.lambda_policy,
+    aws_iam_role.lambda_role,
     data.archive_file.lambda_functions
   ]
 }

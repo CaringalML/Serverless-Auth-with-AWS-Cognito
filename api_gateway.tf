@@ -230,9 +230,9 @@ resource "aws_api_gateway_method_settings" "all" {
 
   settings {
     # Enable CloudWatch logging
-    logging_level   = var.api_gateway_log_level
+    logging_level      = var.api_gateway_log_level
     data_trace_enabled = var.api_gateway_data_trace_enabled
-    metrics_enabled = var.api_gateway_metrics_enabled
+    metrics_enabled    = var.api_gateway_metrics_enabled
 
     # Throttling settings
     throttling_rate_limit  = var.api_throttle_rate_limit

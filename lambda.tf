@@ -47,10 +47,6 @@ locals {
       handler = "handler.lambda_handler"
       timeout = 10
     }
-    audit_log = {
-      handler = "handler.lambda_handler"
-      timeout = 15
-    }
   }
 }
 

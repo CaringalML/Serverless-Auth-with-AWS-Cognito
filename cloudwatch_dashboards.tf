@@ -15,7 +15,7 @@ resource "aws_cloudwatch_dashboard" "security_overview" {
 
         properties = {
           metrics = [
-            ["AWS/Logs", "IncomingLogEvents", "LogGroupName", "/aws/lambda/${var.project_name}-${var.environment}-audit_log"]
+            ["AWS/Lambda", "Errors", "FunctionName", "${var.project_name}-${var.environment}-signin"]
           ]
           view    = "timeSeries"
           stacked = false
@@ -56,7 +56,7 @@ resource "aws_cloudwatch_dashboard" "security_overview" {
         height = 6
 
         properties = {
-          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-security_event' | fields @timestamp, ipAddress, details\n| filter event = \"INACTIVITY_LOGOUT\"\n| stats count() by ipAddress\n| sort count desc\n| limit 10"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-signin' | fields @timestamp\n| filter @message like /ERROR/\n| stats count() by bin(1h)\n| sort @timestamp desc"
           region = var.aws_region
           title  = "Inactivity Logouts by IP"
           view   = "table"
@@ -70,7 +70,7 @@ resource "aws_cloudwatch_dashboard" "security_overview" {
         height = 8
 
         properties = {
-          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit_log' | fields @timestamp, ipAddress, details.email\n| filter success = false\n| stats count() by ipAddress\n| sort count desc\n| limit 20"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-signin' | fields @timestamp\n| filter @message like /Incorrect username or password/\n| stats count() by bin(1h)\n| sort @timestamp desc"
           region = var.aws_region
           title  = "Top Failed Login IP Addresses"
           view   = "table"
@@ -169,7 +169,7 @@ resource "aws_cloudwatch_dashboard" "user_activity" {
         height = 8
 
         properties = {
-          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-user_activity' | fields @timestamp, action, details.page\n| filter action = \"USER_ACTIVE\"\n| stats count() by details.page\n| sort count desc"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-signin' | fields @timestamp\n| filter @message like /Sign in successful/\n| stats count() by bin(1h)\n| sort @timestamp desc"
           region = var.aws_region
           title  = "Page Views by Route"
           view   = "table"
@@ -183,7 +183,7 @@ resource "aws_cloudwatch_dashboard" "user_activity" {
         height = 8
 
         properties = {
-          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-api_call' | fields @timestamp, duration, success\n| filter success = true\n| stats avg(duration), max(duration), min(duration) by bin(5m)"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-signin' | fields @timestamp, @duration\n| stats avg(@duration), max(@duration), min(@duration) by bin(5m)"
           region = var.aws_region
           title  = "API Response Times"
           view   = "timeSeries"
@@ -294,7 +294,7 @@ resource "aws_cloudwatch_dashboard" "system_health" {
         height = 6
 
         properties = {
-          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-token_event' | fields @timestamp, event, success\n| filter event = \"TOKEN_REFRESH\"\n| stats count() by success, bin(1h)\n| sort @timestamp desc"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-refresh' | fields @timestamp\n| filter @message like /successful/\n| stats count() by bin(1h)\n| sort @timestamp desc"
           region = var.aws_region
           title  = "Token Refresh Success Rate"
           view   = "timeSeries"
@@ -308,7 +308,7 @@ resource "aws_cloudwatch_dashboard" "system_health" {
         height = 6
 
         properties = {
-          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-audit-error' | fields @timestamp, error.message, context, userAction\n| sort @timestamp desc\n| limit 100"
+          query  = "SOURCE '/aws/lambda/${var.project_name}-${var.environment}-signin' | fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 100"
           region = var.aws_region
           title  = "Recent System Errors"
           view   = "table"
@@ -338,7 +338,7 @@ resource "aws_cloudwatch_metric_alarm" "failed_login_spike" {
   statistic   = "Sum"
 
   dimensions = {
-    LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-audit_log"
+    LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-signin"
   }
 
   tags = {

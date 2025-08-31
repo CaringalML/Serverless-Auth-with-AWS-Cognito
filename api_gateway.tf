@@ -64,10 +64,6 @@ locals {
       path_part = "refresh"
       method    = "POST"
     }
-    audit_log = {
-      path_part = "logs"
-      method    = "POST"
-    }
   }
 }
 

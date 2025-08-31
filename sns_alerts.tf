@@ -109,7 +109,7 @@ resource "aws_cloudwatch_metric_alarm" "suspicious_login_activity" {
       stat        = "Sum"
 
       dimensions = {
-        LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-audit_log"
+        LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-signin"
       }
     }
   }
@@ -127,11 +127,11 @@ resource "aws_cloudwatch_metric_alarm" "suspicious_login_activity" {
   ]
 }
 
-# Unusual Geographic Login Pattern
+# Unusual Geographic Login Pattern - Changed to monitor signin function instead
 resource "aws_cloudwatch_log_metric_filter" "geographic_anomaly" {
   name           = "${var.project_name}-${var.environment}-geographic-anomaly"
-  log_group_name = "/aws/lambda/${var.project_name}-${var.environment}-audit_log"
-  pattern        = "[timestamp, type=\"AUTH_EVENT\", event=\"LOGIN\", success=true, ...]"
+  log_group_name = "/aws/lambda/${var.project_name}-${var.environment}-signin"
+  pattern        = "[timestamp, request_id, level=\"ERROR\", ...]"
 
   metric_transformation {
     name      = "GeographicLogins"
@@ -162,7 +162,7 @@ resource "aws_cloudwatch_metric_alarm" "token_refresh_failures" {
       stat        = "Sum"
 
       dimensions = {
-        LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-audit-token_event"
+        LogGroupName = "/aws/lambda/${var.project_name}-${var.environment}-refresh"
       }
     }
   }

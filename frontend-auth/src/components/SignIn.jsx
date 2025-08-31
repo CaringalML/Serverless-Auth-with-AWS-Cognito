@@ -27,23 +27,31 @@ const SignIn = () => {
   const navigate = useNavigate();
   const { loading } = useSelector((state) => state.auth);
 
-  // Load error from localStorage on component mount and keep it synced
+  // Load error from localStorage on component mount
   useEffect(() => {
     const loadErrorFromStorage = () => {
       const savedError = localStorage.getItem('signin_error');
-      if (savedError && savedError !== persistentError) {
+      if (savedError) {
         setPersistentError(savedError);
       }
     };
 
-    // Load on mount
+    // Load on mount only
     loadErrorFromStorage();
 
-    // Set up interval to check localStorage periodically (in case of external changes)
-    const interval = setInterval(loadErrorFromStorage, 500);
-
-    return () => clearInterval(interval);
-  }, [persistentError]);
+    // Listen for storage events instead of polling
+    const handleStorageChange = (e) => {
+      if (e.key === 'signin_error') {
+        loadErrorFromStorage();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []); // Remove persistentError dependency to avoid infinite loop
 
   useEffect(() => {
     // Validate email on change if touched

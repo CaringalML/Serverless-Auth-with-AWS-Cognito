@@ -13,6 +13,7 @@ class AuthService {
     this.activityCheckInterval = null;
     this.warningTimer = null;
     this.logoutTimer = null;
+    this.proactiveRefreshInterval = null; // Track the refresh interval
     this.onInactivityWarning = null;
     this.onInactivityLogout = null;
     
@@ -94,26 +95,28 @@ class AuthService {
       async (error) => {
         const originalRequest = error.config;
         
-        // Log API errors
-        const duration = originalRequest.metadata?.startTime ? 
-          Date.now() - originalRequest.metadata.startTime : 0;
-        loggingService.logAPICall(
-          originalRequest.method.toUpperCase(),
-          originalRequest.url,
-          error.response?.status || 0,
-          duration,
-          error
-        );
+        // Log API errors - check if originalRequest exists
+        if (originalRequest) {
+          const duration = originalRequest.metadata?.startTime ? 
+            Date.now() - originalRequest.metadata.startTime : 0;
+          loggingService.logAPICall(
+            originalRequest.method?.toUpperCase() || 'UNKNOWN',
+            originalRequest.url || 'unknown',
+            error.response?.status || 0,
+            duration,
+            error
+          );
+        }
         
         // Don't try to refresh tokens for authentication endpoints
-        const isAuthEndpoint = originalRequest.url?.includes('/auth/signin') || 
-                              originalRequest.url?.includes('/auth/signup') ||
-                              originalRequest.url?.includes('/auth/verify') ||
-                              originalRequest.url?.includes('/auth/forgot-password') ||
-                              originalRequest.url?.includes('/auth/reset-password') ||
-                              originalRequest.url?.includes('/auth/refresh');
+        const isAuthEndpoint = originalRequest?.url?.includes('/auth/signin') || 
+                              originalRequest?.url?.includes('/auth/signup') ||
+                              originalRequest?.url?.includes('/auth/verify') ||
+                              originalRequest?.url?.includes('/auth/forgot-password') ||
+                              originalRequest?.url?.includes('/auth/reset-password') ||
+                              originalRequest?.url?.includes('/auth/refresh');
         
-        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
           // Only try refresh if we have a refresh token
           const refreshToken = this.getRefreshToken();
           if (!refreshToken) {
@@ -158,7 +161,9 @@ class AuthService {
         }
         
         // For other errors, return user-friendly message but log the technical details
-        loggingService.logError(error, 'API_CALL', originalRequest.url);
+        if (originalRequest) {
+          loggingService.logError(error, 'API_CALL', originalRequest.url);
+        }
         
         // Return original error for auth endpoints to show proper validation messages
         if (isAuthEndpoint) {
@@ -319,6 +324,8 @@ class AuthService {
     this.deleteCookie('idToken');
     // Stop activity tracking
     this.stopActivityTracking();
+    // Stop proactive refresh
+    this.stopProactiveRefresh();
     
     // Clear user ID from logging service
     loggingService.setUserId(null);
@@ -364,6 +371,8 @@ class AuthService {
     try {
       this.refreshPromise = axios.post(API_ENDPOINTS.REFRESH, {
         refreshToken: refreshToken
+      }, {
+        _retry: true  // Mark this request to skip interceptor retry logic
       });
       
       const response = await this.refreshPromise;
@@ -377,8 +386,8 @@ class AuthService {
       
       return response.data;
     } catch (error) {
-      // If refresh fails, clear all tokens
-      this.logout();
+      // Don't call logout here - let the interceptor handle it
+      // to avoid double logout
       throw error;
     } finally {
       this.isRefreshing = false;
@@ -420,12 +429,24 @@ class AuthService {
   }
 
   startProactiveRefresh() {
+    // Clear any existing interval
+    if (this.proactiveRefreshInterval) {
+      clearInterval(this.proactiveRefreshInterval);
+    }
+    
     // Check token every 5 minutes and refresh if needed (only if user is active)
-    setInterval(async () => {
+    this.proactiveRefreshInterval = setInterval(async () => {
       if (this.isAuthenticated() && !this.isRefreshing && this.isUserActive()) {
         await this.checkAndRefreshToken();
       }
     }, 5 * 60 * 1000); // 5 minutes
+  }
+  
+  stopProactiveRefresh() {
+    if (this.proactiveRefreshInterval) {
+      clearInterval(this.proactiveRefreshInterval);
+      this.proactiveRefreshInterval = null;
+    }
   }
 
   // Activity tracking methods

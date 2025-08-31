@@ -1,28 +1,13 @@
-import axios from 'axios';
-
+// Simplified logging service - audit logging disabled
 class LoggingService {
   constructor() {
-    this.isEnabled = process.env.NODE_ENV === 'production';
-    this.sessionId = this.generateSessionId();
+    // Minimal initialization - no external API calls
+    this.isEnabled = false; // Completely disabled
+    this.sessionId = 'disabled';
     this.userId = null;
-    this.userAgent = navigator.userAgent;
-    this.ipAddress = null;
-    this.initializeIPAddress();
-  }
-
-  generateSessionId() {
-    return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  }
-
-  async initializeIPAddress() {
-    try {
-      // Get user's IP address
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      this.ipAddress = data.ip;
-    } catch (error) {
-      this.ipAddress = 'unknown';
-    }
+    this.userAgent = '';
+    this.ipAddress = 'disabled';
+    // No longer fetching IP address to avoid network calls
   }
 
   setUserId(userId) {
@@ -187,30 +172,12 @@ class LoggingService {
   }
 
   async sendLog(logEntry) {
-    try {
-      // In development, just log to console
-      if (!this.isEnabled) {
-        console.log('📋 Audit Log:', logEntry);
-        return;
-      }
-
-      // In production, send to CloudWatch via a logging endpoint
-      const API_BASE_URL = process.env.REACT_APP_API_URL;
-      if (!API_BASE_URL) {
-        console.warn('API_BASE_URL not configured, skipping log upload');
-        return;
-      }
-      
-      await axios.post(`${API_BASE_URL}/auth/logs`, logEntry, {
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    } catch (error) {
-      // If logging fails, don't break the app
-      console.error('Failed to send log:', error);
+    // Disabled audit logging - no longer sending to backend
+    // Only log to console in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📋 Debug Log:', logEntry);
     }
+    // Do not send logs to backend API
   }
 
   // Convenience methods for common scenarios

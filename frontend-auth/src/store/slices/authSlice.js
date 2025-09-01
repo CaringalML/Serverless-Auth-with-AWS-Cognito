@@ -76,7 +76,9 @@ export const checkAuthAsync = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      if (authService.isAuthenticated()) {
+      const isAuth = authService.isAuthenticated();
+      
+      if (isAuth) {
         const userInfo = authService.getUserInfo();
         return { user: userInfo, isAuthenticated: true };
       } else {

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { checkAuth } from './store/slices/authSlice';
+import { checkAuthAsync } from './store/slices/authSlice';
 
 import SignUp from './components/SignUp';
 import SignIn from './components/SignIn';
@@ -16,7 +16,7 @@ function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(checkAuth());
+    dispatch(checkAuthAsync());
   }, [dispatch]);
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../store/slices/authSlice';
+import authService from '../services/authService';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -69,7 +70,7 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-600 break-all">
                     <span className="font-medium">Access Token:</span>{' '}
                     <code className="text-xs bg-gray-200 px-1 py-0.5 rounded">
-                      {localStorage.getItem('accessToken')?.substring(0, 50)}...
+                      {authService.getToken()?.substring(0, 50)}...
                     </code>
                   </p>
                 </div>

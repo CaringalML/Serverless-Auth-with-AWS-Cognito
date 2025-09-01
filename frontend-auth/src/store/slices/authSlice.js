@@ -72,6 +72,22 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const checkAuthAsync = createAsyncThunk(
+  'auth/checkAuth',
+  async (_, { rejectWithValue }) => {
+    try {
+      if (authService.isAuthenticated()) {
+        const userInfo = authService.getUserInfo();
+        return { user: userInfo, isAuthenticated: true };
+      } else {
+        return { user: null, isAuthenticated: false };
+      }
+    } catch (error) {
+      return rejectWithValue(error.error || error.message || 'Auth check failed');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -160,6 +176,21 @@ const authSlice = createSlice({
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(checkAuthAsync.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(checkAuthAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.isAuthenticated = action.payload.isAuthenticated;
+        state.error = null;
+      })
+      .addCase(checkAuthAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
         state.error = action.payload || action.error.message;
       });
   },

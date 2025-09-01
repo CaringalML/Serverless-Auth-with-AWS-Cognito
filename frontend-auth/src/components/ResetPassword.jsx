@@ -12,21 +12,17 @@ const ResetPassword = () => {
   const location = useLocation();
   const [formData, setFormData] = useState({
     email: location.state?.email || '',
-    code: '',
+    code: location.state?.code || '',
     newPassword: '',
     confirmPassword: '',
   });
   
   const [fieldErrors, setFieldErrors] = useState({
-    email: '',
-    code: '',
     newPassword: [],
     confirmPassword: '',
   });
   
   const [touched, setTouched] = useState({
-    email: false,
-    code: false,
     newPassword: false,
     confirmPassword: false,
   });
@@ -43,6 +39,12 @@ const ResetPassword = () => {
   const { loading, error } = useSelector((state) => state.auth);
 
   useEffect(() => {
+    // Redirect if no email or code provided
+    if (!location.state?.email || !location.state?.code || !location.state?.verified) {
+      navigate('/forgot-password');
+      return;
+    }
+    
     if (isSuccess) {
       const interval = setInterval(() => {
         setRedirectCountdown((prev) => {
@@ -56,7 +58,7 @@ const ResetPassword = () => {
       
       return () => clearInterval(interval);
     }
-  }, [isSuccess, navigate]);
+  }, [isSuccess, navigate, location.state]);
 
   useEffect(() => {
     // Validate fields on change if they've been touched
@@ -89,8 +91,6 @@ const ResetPassword = () => {
     
     // Touch all fields to show validation
     setTouched({
-      email: true,
-      code: true,
       newPassword: true,
       confirmPassword: true,
     });
@@ -106,11 +106,6 @@ const ResetPassword = () => {
     
     if (!matchValidation.isValid) {
       setLocalError('Passwords do not match.');
-      return;
-    }
-    
-    if (!formData.email || !formData.code) {
-      setLocalError('Please fill in all required fields.');
       return;
     }
 
@@ -138,7 +133,7 @@ const ResetPassword = () => {
             Reset Password
           </h2>
           <p className="text-emerald-600/70 font-medium">
-            Enter the code from your email and create a new password
+            Create your new password
           </p>
         </div>
         
@@ -205,53 +200,27 @@ const ResetPassword = () => {
         )}
 
         {!isSuccess && (
+        <div className="mb-6">
+          <div className="bg-gradient-to-r from-emerald-100/80 to-green-100/80 backdrop-blur border border-emerald-200/50 text-emerald-700 px-6 py-4 rounded-2xl shadow-lg">
+            <div className="flex items-center">
+              <div className="p-2 bg-emerald-500/20 rounded-full mr-4">
+                <svg className="w-5 h-5 text-emerald-700" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-emerald-800">Code Verified Successfully</p>
+                <p className="text-sm text-emerald-600 mt-1">
+                  Reset code verified for {formData.email}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        )}
+        
+        {!isSuccess && (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-emerald-700 mb-2">
-              Email Address
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                </svg>
-              </div>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                onBlur={() => handleBlur('email')}
-                required
-                className="w-full pl-10 pr-4 py-3 bg-white/70 backdrop-blur border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:border-emerald-400 focus:ring-emerald-200 hover:border-emerald-300 transition-all duration-300 shadow-sm hover:shadow-md"
-                placeholder="your.email@example.com"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-emerald-700 mb-2">
-              Reset Code
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
-                onBlur={() => handleBlur('code')}
-                required
-                className="w-full pl-10 pr-4 py-3 bg-white/70 backdrop-blur border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:border-emerald-400 focus:ring-emerald-200 hover:border-emerald-300 transition-all duration-300 shadow-sm hover:shadow-md"
-                placeholder="Enter 6-digit code"
-                maxLength="6"
-              />
-            </div>
-          </div>
 
           <div>
             <label className="block text-sm font-semibold text-emerald-700 mb-2">

@@ -30,23 +30,15 @@ const ForgotPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Don't allow submission during countdown
+    if (resendCountdown > 0) return;
+    
     const result = await dispatch(forgotPassword({ email }));
 
     if (forgotPassword.fulfilled.match(result)) {
       setIsCodeSent(true);
       setResendCountdown(60); // 60 second cooldown for DDoS protection
       setCanResend(false);
-    }
-  };
-  
-  const handleResend = async () => {
-    if (!canResend) return;
-    
-    setCanResend(false);
-    const result = await dispatch(forgotPassword({ email }));
-    
-    if (forgotPassword.fulfilled.match(result)) {
-      setResendCountdown(60); // Reset countdown after resend
     }
   };
   
@@ -167,31 +159,6 @@ const ForgotPassword = () => {
                 </div>
               </div>
               
-              {/* Resend section with DDoS protection */}
-              <div className="flex items-center justify-between pt-4 border-t border-emerald-200">
-                <div className="text-sm text-emerald-600">
-                  Didn't receive the code?
-                </div>
-                {resendCountdown > 0 ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin h-4 w-4 mr-2 text-emerald-600" fill="none" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
-                    </svg>
-                    <span className="text-emerald-700 font-semibold">
-                      Resend in {resendCountdown}s
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleResend}
-                    disabled={!canResend || loading}
-                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Sending...' : 'Resend Code'}
-                  </button>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -218,8 +185,7 @@ const ForgotPassword = () => {
           </div>
         )}
 
-        {!isCodeSent && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-emerald-700 mb-2">
               Email Address
@@ -235,36 +201,48 @@ const ForgotPassword = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-white/70 backdrop-blur border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:border-emerald-400 focus:ring-emerald-200 hover:border-emerald-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                disabled={isCodeSent}
+                className={`w-full pl-10 pr-4 py-3 backdrop-blur border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 shadow-sm hover:shadow-md ${
+                  isCodeSent 
+                    ? 'bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed' 
+                    : 'bg-white/70 border-emerald-200 focus:border-emerald-400 focus:ring-emerald-200 hover:border-emerald-300'
+                }`}
                 placeholder="your.email@example.com"
               />
             </div>
           </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:from-emerald-700 hover:to-green-700 hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:transform-none disabled:hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
-                  </svg>
-                  Sending Reset Code...
-                </div>
-              ) : (
-                <span className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
-                  Send Reset Code
-                </span>
-              )}
-            </button>
-          </form>
-        )}
+          <button
+            type="submit"
+            disabled={loading || (resendCountdown > 0)}
+            className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:from-emerald-700 hover:to-green-700 hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:transform-none disabled:hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+                </svg>
+                Sending Reset Code...
+              </div>
+            ) : resendCountdown > 0 ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin h-4 w-4 mr-2 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+                </svg>
+                Wait {resendCountdown}s to send again
+              </div>
+            ) : (
+              <span className="flex items-center justify-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+                {isCodeSent ? 'Resend Reset Code' : 'Send Reset Code'}
+              </span>
+            )}
+          </button>
+        </form>
 
         {!isCodeSent && (
           <div className="mt-8 text-center">
@@ -366,19 +344,6 @@ const ForgotPassword = () => {
               </div>
             )}
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCodeSent(false);
-                  setResetCode(['', '', '', '', '', '']);
-                  dispatch(clearError());
-                }}
-                className="text-sm text-emerald-600 hover:text-emerald-800 transition-colors duration-200 hover:underline"
-              >
-                ← Back to email input
-              </button>
-            </div>
           </form>
         )}
       </div>

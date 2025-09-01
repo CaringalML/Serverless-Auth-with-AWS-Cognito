@@ -7,7 +7,6 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [canResend, setCanResend] = useState(false);
   const [resetCode, setResetCode] = useState(['', '', '', '', '', '']);
   const [verifyingCode, setVerifyingCode] = useState(false);
   const inputRefs = useRef([]);
@@ -22,10 +21,8 @@ const ForgotPassword = () => {
         setResendCountdown(resendCountdown - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (isCodeSent && resendCountdown === 0) {
-      setCanResend(true);
     }
-  }, [resendCountdown, isCodeSent]);
+  }, [resendCountdown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +35,6 @@ const ForgotPassword = () => {
     if (forgotPassword.fulfilled.match(result)) {
       setIsCodeSent(true);
       setResendCountdown(60); // 60 second cooldown for DDoS protection
-      setCanResend(false);
     }
   };
   

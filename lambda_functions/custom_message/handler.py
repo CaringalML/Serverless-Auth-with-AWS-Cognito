@@ -61,10 +61,10 @@ def lambda_handler(event, context):
     <style>
         body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+        .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
         .content {{ background: #fff; padding: 30px; border: 1px solid #e2e8f0; }}
-        .code {{ font-size: 24px; font-weight: bold; color: #1d4ed8; text-align: center; background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; }}
-        .warning {{ background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 8px; margin: 20px 0; }}
+        .code {{ font-size: 24px; font-weight: bold; color: #059669; text-align: center; background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+        .warning {{ background: #fef7f0; border: 1px solid #fed7aa; padding: 15px; border-radius: 8px; margin: 20px 0; }}
         .footer {{ background: #f8fafc; padding: 20px; text-align: center; font-size: 14px; color: #64748b; border-radius: 0 0 8px 8px; }}
     </style>
 </head>

@@ -28,9 +28,20 @@ resource "aws_cognito_user_pool" "main" {
     email_message         = "Your verification code is {####}. Please enter this code to complete your registration."
   }
 
+  # Device configuration
+  device_configuration {
+    challenge_required_on_new_device      = false
+    device_only_remembered_on_user_prompt = false
+  }
+  
   # Admin user creation configuration
   admin_create_user_config {
     allow_admin_create_user_only = false
+  }
+
+  # Lambda triggers for custom messages
+  lambda_config {
+    custom_message = aws_lambda_function.custom_message.arn
   }
 
   account_recovery_setting {

@@ -50,6 +50,53 @@ locals {
   }
 }
 
+# Custom message Lambda function for Cognito triggers
+resource "aws_lambda_function" "custom_message" {
+  filename         = "lambda_functions/custom_message/custom_message.zip"
+  function_name    = "${var.project_name}-${var.environment}-custom-message"
+  role            = aws_iam_role.lambda_role.arn
+  handler         = "handler.lambda_handler"
+  runtime         = "python3.12"
+  timeout         = 10
+  memory_size     = 128
+
+  source_code_hash = data.archive_file.custom_message_lambda.output_base64sha256
+
+  layers = [aws_lambda_layer_version.shared.arn]
+
+  environment {
+    variables = {
+      PROJECT_NAME = var.project_name
+      ENVIRONMENT  = var.environment
+    }
+  }
+
+  lifecycle {
+    prevent_destroy = false
+  }
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# Archive for custom message Lambda
+data "archive_file" "custom_message_lambda" {
+  type        = "zip"
+  source_dir  = "lambda_functions/custom_message"
+  output_path = "lambda_functions/custom_message/custom_message.zip"
+}
+
+# Lambda permission for Cognito to invoke custom message function
+resource "aws_lambda_permission" "cognito_custom_message" {
+  statement_id  = "AllowExecutionFromCognito"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.custom_message.function_name
+  principal     = "cognito-idp.amazonaws.com"
+  source_arn    = aws_cognito_user_pool.main.arn
+}
+
 # Archive Lambda functions with source code tracking
 data "archive_file" "lambda_functions" {
   for_each = local.lambda_functions

@@ -373,7 +373,7 @@ resource "aws_cloudwatch_metric_alarm" "api_error_rate" {
 resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
   for_each = local.lambda_functions
 
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-errors"
+  alarm_name          = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "Errors"
@@ -381,10 +381,10 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_rate" {
   period              = "300"
   statistic           = "Sum"
   threshold           = "5"
-  alarm_description   = "Lambda function ${each.key} error rate too high"
+  alarm_description   = "Lambda function ${replace(each.key, "_", "-")} error rate too high"
 
   dimensions = {
-    FunctionName = "${var.project_name}-${var.environment}-${each.key}"
+    FunctionName = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}"
   }
 
   tags = {

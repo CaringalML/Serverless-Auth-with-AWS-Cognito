@@ -2,7 +2,7 @@
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   for_each = local.lambda_functions
 
-  name              = "/aws/lambda/${var.project_name}-${var.environment}-${each.key}"
+  name              = "/aws/lambda/${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}"
   retention_in_days = 14
   skip_destroy      = var.skip_destroy_cloudwatch_logs
 
@@ -20,7 +20,7 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
 resource "aws_cloudwatch_log_stream" "lambda_log_streams" {
   for_each = local.lambda_functions
 
-  name           = "${var.project_name}-${var.environment}-${each.key}-stream"
+  name           = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-stream"
   log_group_name = aws_cloudwatch_log_group.lambda_logs[each.key].name
 
   depends_on = [aws_cloudwatch_log_group.lambda_logs]
@@ -31,12 +31,12 @@ resource "aws_cloudwatch_log_stream" "lambda_log_streams" {
 resource "aws_cloudwatch_log_metric_filter" "lambda_errors" {
   for_each = local.lambda_functions
 
-  name           = "${var.project_name}-${var.environment}-${each.key}-errors"
+  name           = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-errors"
   log_group_name = aws_cloudwatch_log_group.lambda_logs[each.key].name
   pattern        = "ERROR"
 
   metric_transformation {
-    name      = "${var.project_name}-${var.environment}-${each.key}-errors"
+    name      = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-errors"
     namespace = "Lambda/Errors"
     value     = "1"
   }
@@ -48,10 +48,10 @@ resource "aws_cloudwatch_log_metric_filter" "lambda_errors" {
 resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
   for_each = local.lambda_functions
 
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-error-alarm"
+  alarm_name          = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-error-alarm"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
-  metric_name         = "${var.project_name}-${var.environment}-${each.key}-errors"
+  metric_name         = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-errors"
   namespace           = "Lambda/Errors"
   period              = "60"
   statistic           = "Sum"
@@ -82,7 +82,7 @@ resource "aws_cloudwatch_dashboard" "lambda_dashboard" {
         properties = {
           metrics = [
             for function_name in keys(local.lambda_functions) : [
-              "AWS/Lambda", "Invocations", "FunctionName", "${var.project_name}-${var.environment}-${function_name}"
+              "AWS/Lambda", "Invocations", "FunctionName", "${var.project_name}-${var.environment}-${replace(function_name, "_", "-")}"
             ]
           ]
           period = 300
@@ -101,7 +101,7 @@ resource "aws_cloudwatch_dashboard" "lambda_dashboard" {
         properties = {
           metrics = [
             for function_name in keys(local.lambda_functions) : [
-              "AWS/Lambda", "Errors", "FunctionName", "${var.project_name}-${var.environment}-${function_name}"
+              "AWS/Lambda", "Errors", "FunctionName", "${var.project_name}-${var.environment}-${replace(function_name, "_", "-")}"
             ]
           ]
           period = 300
@@ -120,7 +120,7 @@ resource "aws_cloudwatch_dashboard" "lambda_dashboard" {
         properties = {
           metrics = [
             for function_name in keys(local.lambda_functions) : [
-              "AWS/Lambda", "Duration", "FunctionName", "${var.project_name}-${var.environment}-${function_name}"
+              "AWS/Lambda", "Duration", "FunctionName", "${var.project_name}-${var.environment}-${replace(function_name, "_", "-")}"
             ]
           ]
           period = 300

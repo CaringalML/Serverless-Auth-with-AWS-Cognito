@@ -206,7 +206,7 @@ resource "aws_cloudwatch_metric_alarm" "api_gateway_errors" {
 resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
   for_each = local.lambda_functions
 
-  alarm_name          = "${var.project_name}-${var.environment}-${each.key}-duration"
+  alarm_name          = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}-duration"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "Duration"
@@ -214,11 +214,11 @@ resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
   period              = "300"
   statistic           = "Average"
   threshold           = each.value.timeout * 1000 * 0.8 # 80% of timeout
-  alarm_description   = "Lambda ${each.key} duration approaching timeout"
+  alarm_description   = "Lambda ${replace(each.key, "_", "-")} duration approaching timeout"
   alarm_actions       = [aws_sns_topic.system_alerts.arn]
 
   dimensions = {
-    FunctionName = "${var.project_name}-${var.environment}-${each.key}"
+    FunctionName = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}"
   }
 
   tags = {

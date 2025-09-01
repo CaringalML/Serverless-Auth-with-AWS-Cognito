@@ -52,13 +52,13 @@ locals {
 
 # Custom message Lambda function for Cognito triggers
 resource "aws_lambda_function" "custom_message" {
-  filename         = "lambda_functions/custom_message/custom_message.zip"
-  function_name    = "${var.project_name}-${var.environment}-custom-message"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "handler.lambda_handler"
-  runtime         = "python3.12"
-  timeout         = 10
-  memory_size     = 128
+  filename      = "lambda_functions/custom_message/custom_message.zip"
+  function_name = "${var.project_name}-${var.environment}-custom-message"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "handler.lambda_handler"
+  runtime       = "python3.12"
+  timeout       = 10
+  memory_size   = 128
 
   source_code_hash = data.archive_file.custom_message_lambda.output_base64sha256
 

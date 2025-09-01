@@ -33,7 +33,7 @@ resource "aws_cognito_user_pool" "main" {
     challenge_required_on_new_device      = false
     device_only_remembered_on_user_prompt = false
   }
-  
+
   # Admin user creation configuration
   admin_create_user_config {
     allow_admin_create_user_only = false

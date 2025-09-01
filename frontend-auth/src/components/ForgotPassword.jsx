@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { forgotPassword, clearError } from '../store/slices/authSlice';
@@ -8,8 +8,9 @@ const ForgotPassword = () => {
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [canResend, setCanResend] = useState(false);
-  const [resetCode, setResetCode] = useState('');
+  const [resetCode, setResetCode] = useState(['', '', '', '', '', '']);
   const [verifyingCode, setVerifyingCode] = useState(false);
+  const inputRefs = useRef([]);
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -49,12 +50,60 @@ const ForgotPassword = () => {
     }
   };
   
-  const handleVerifyCode = async (e) => {
-    e.preventDefault();
+  const handleCodeChange = (index, value) => {
+    if (value.length > 1) return;
     
-    if (resetCode.length !== 6) {
-      return;
+    const newCode = [...resetCode];
+    newCode[index] = value;
+    setResetCode(newCode);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
     }
+
+    // Auto-submit when all 6 digits are entered
+    if (value && newCode.every(digit => digit !== '')) {
+      handleAutoVerify(newCode.join(''));
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    // Handle backspace
+    if (e.key === 'Backspace' && !resetCode[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').slice(0, 6);
+    const newCode = [...resetCode];
+    
+    for (let i = 0; i < pastedData.length && i < 6; i++) {
+      if (/^\d$/.test(pastedData[i])) {
+        newCode[i] = pastedData[i];
+      }
+    }
+    
+    setResetCode(newCode);
+    
+    // Auto-submit if all 6 digits are pasted
+    if (pastedData.length === 6 && newCode.every(digit => digit !== '')) {
+      handleAutoVerify(newCode.join(''));
+    } else {
+      // Focus the next empty input or the last one
+      const nextEmptyIndex = newCode.findIndex(code => code === '');
+      if (nextEmptyIndex !== -1) {
+        inputRefs.current[nextEmptyIndex]?.focus();
+      } else {
+        inputRefs.current[5]?.focus();
+      }
+    }
+  };
+
+  const handleAutoVerify = async (code) => {
+    if (verifyingCode || !email || code.length !== 6) return;
     
     setVerifyingCode(true);
     
@@ -66,10 +115,21 @@ const ForgotPassword = () => {
     navigate('/reset-password', { 
       state: { 
         email, 
-        code: resetCode,
+        code,
         verified: true 
       } 
     });
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    
+    const code = resetCode.join('');
+    if (code.length !== 6) {
+      return;
+    }
+    
+    handleAutoVerify(code);
   };
 
   return (
@@ -220,28 +280,46 @@ const ForgotPassword = () => {
         {isCodeSent && (
           <form onSubmit={handleVerifyCode} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-emerald-700 mb-2">
+              <label className="block text-sm font-semibold text-emerald-700 mb-4">
                 Enter Reset Code
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+                <div className="flex justify-center space-x-2 mb-4">
+                  {resetCode.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      value={digit}
+                      onChange={(e) => handleCodeChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : undefined}
+                      className={`w-12 h-12 text-center text-lg font-bold border-2 rounded-xl focus:outline-none transition-all duration-300 shadow-sm hover:shadow-md backdrop-blur ${
+                        verifyingCode 
+                          ? 'border-emerald-200/50 bg-gray-50/70 text-gray-400' 
+                          : 'border-emerald-200 bg-white/70 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 hover:border-emerald-300 text-emerald-800'
+                      }`}
+                      maxLength="1"
+                      pattern="[0-9]"
+                      inputMode="numeric"
+                      disabled={verifyingCode}
+                    />
+                  ))}
                 </div>
-                <input
-                  type="text"
-                  value={resetCode}
-                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  required
-                  maxLength="6"
-                  pattern="[0-9]{6}"
-                  className="w-full pl-10 pr-4 py-3 bg-white/70 backdrop-blur border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:border-emerald-400 focus:ring-emerald-200 hover:border-emerald-300 transition-all duration-300 shadow-sm hover:shadow-md text-center font-mono text-lg tracking-widest"
-                  placeholder="000000"
-                />
+                {verifyingCode && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur rounded-xl">
+                    <div className="flex flex-col items-center">
+                      <svg className="animate-spin h-8 w-8 text-emerald-600 mb-2" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-sm text-emerald-700 font-medium">Verifying...</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-emerald-600/70 mt-2 text-center">
-                Enter the 6-digit code from your email
+              <p className="text-xs text-emerald-600/70 text-center mb-4 font-medium">
+                {verifyingCode ? 'Please wait while we verify your code...' : 'Enter the 6-digit code sent to your email'}
               </p>
             </div>
 
@@ -268,35 +346,32 @@ const ForgotPassword = () => {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={verifyingCode || resetCode.length !== 6}
-              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:from-emerald-700 hover:to-green-700 hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:transform-none disabled:hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
-            >
-              {verifyingCode ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
-                  </svg>
-                  Verifying Code...
+            {/* Optional manual verify button for fallback */}
+            {!verifyingCode && resetCode.join('').length === 6 && (
+              <div className="mt-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-2 bg-white text-gray-500">Having trouble?</span>
+                  </div>
                 </div>
-              ) : (
-                <span className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Verify Code & Continue
-                </span>
-              )}
-            </button>
+                <button
+                  type="submit"
+                  className="mt-3 w-full text-sm text-emerald-600 py-3 px-4 border border-emerald-200 bg-white/70 backdrop-blur rounded-xl hover:bg-emerald-50/70 hover:border-emerald-300 transition-all duration-300 font-semibold shadow-sm hover:shadow-md"
+                >
+                  Manually verify code
+                </button>
+              </div>
+            )}
 
             <div className="text-center">
               <button
                 type="button"
                 onClick={() => {
                   setIsCodeSent(false);
-                  setResetCode('');
+                  setResetCode(['', '', '', '', '', '']);
                   dispatch(clearError());
                 }}
                 className="text-sm text-emerald-600 hover:text-emerald-800 transition-colors duration-200 hover:underline"

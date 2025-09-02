@@ -247,14 +247,20 @@ class AuthService {
   
   async isAuthenticated() {
     try {
+      console.log('🔍 [DEBUG] Checking authentication - URL:', API_ENDPOINTS.VERIFY_TOKEN);
+      console.log('🔍 [DEBUG] Current domain:', window.location.hostname);
+      console.log('🔍 [DEBUG] Document cookies visible:', document.cookie);
+      
       // Try to make an authenticated request with extended timeout for page refresh
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
         withCredentials: true,
         timeout: 5000 // Increased timeout for page refresh scenarios
       });
       
+      console.log('✅ [DEBUG] Auth check successful');
       return response.status === 200;
     } catch (error) {
+      console.log('❌ [DEBUG] Auth check failed:', error.response?.status, error.message);
       // If request fails, user is not authenticated
       return false;
     }

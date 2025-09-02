@@ -39,14 +39,21 @@ export const signin = createAsyncThunk(
     try {
       const response = await authService.signin(email, password);
       
-      // After successful signin, get user info from httpOnly cookies
-      try {
-        const userInfo = await authService.getUserInfo();
-        return { ...response, user: userInfo };
-      } catch (userInfoError) {
-        // If getUserInfo fails, still return successful signin but without user data
-        console.warn('Failed to get user info after signin:', userInfoError);
+      // Check if user info is already in the response, otherwise get it via API
+      if (response.user) {
         return response;
+      } else {
+        // Try to get user info from httpOnly cookies after a small delay
+        try {
+          // Wait 200ms for cookies to be processed by browser
+          await new Promise(resolve => setTimeout(resolve, 200));
+          const userInfo = await authService.getUserInfo();
+          return { ...response, user: userInfo };
+        } catch (userInfoError) {
+          // If getUserInfo fails, still return successful signin but without user data
+          console.warn('Failed to get user info after signin:', userInfoError);
+          return response;
+        }
       }
     } catch (error) {
       // Extract error message from server response

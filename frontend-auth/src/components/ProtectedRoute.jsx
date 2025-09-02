@@ -35,15 +35,32 @@ const ProtectedRoute = ({ children }) => {
   // Initialize with loading state to prevent premature redirects
   const [isInitializing, setIsInitializing] = useState(true);
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
-    // Check authentication status on mount
+    // Only check auth once per component mount
+    if (hasCheckedAuth) {
+      setAuthCheckComplete(true);
+      setIsInitializing(false);
+      return;
+    }
+    
     const checkAuth = async () => {
       try {
-        // Dispatch async auth check to update Redux state
+        setHasCheckedAuth(true);
+        
+        // First check if we already have auth state from signin
+        if (isAuthenticated) {
+          setAuthCheckComplete(true);
+          setIsInitializing(false);
+          return;
+        }
+        
+        // If not authenticated, try to check with backend (only once)
         await dispatch(checkAuthAsync()).unwrap();
       } catch (error) {
         console.warn('Auth check failed:', error);
+        // On auth check failure, assume not authenticated
       } finally {
         setAuthCheckComplete(true);
         setIsInitializing(false);
@@ -56,7 +73,7 @@ const ProtectedRoute = ({ children }) => {
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [dispatch]);
+  }, [dispatch, isAuthenticated, hasCheckedAuth]);
 
   // Show loading spinner while:
   // - Redux is checking authentication (loading = true)

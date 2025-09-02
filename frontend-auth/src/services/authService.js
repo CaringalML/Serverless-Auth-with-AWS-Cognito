@@ -253,6 +253,7 @@ class AuthService {
       return response.status === 200;
     } catch (error) {
       // If request fails, user is not authenticated
+      console.log('Auth check failed:', error.response?.status, error.message);
       return false;
     }
   }

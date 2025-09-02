@@ -91,15 +91,27 @@ export const checkAuthAsync = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('🔍 [checkAuthAsync] Starting authentication check');
+      
+      // On page refresh, httpOnly cookies need extra time to be available
+      // Add a small delay to ensure cookies are readable by the browser
+      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('⏱️ [checkAuthAsync] Waited 300ms for cookie availability');
+      
       const isAuth = await authService.isAuthenticated();
+      console.log('🔐 [checkAuthAsync] Auth status from service:', isAuth);
       
       if (isAuth) {
+        console.log('✅ [checkAuthAsync] User is authenticated, fetching user info');
         const userInfo = await authService.getUserInfo();
+        console.log('👤 [checkAuthAsync] User info retrieved:', userInfo ? 'success' : 'failed');
         return { user: userInfo, isAuthenticated: true };
       } else {
+        console.log('❌ [checkAuthAsync] User is not authenticated');
         return { user: null, isAuthenticated: false };
       }
     } catch (error) {
+      console.error('💥 [checkAuthAsync] Auth check failed:', error);
       return rejectWithValue(error.error || error.message || 'Auth check failed');
     }
   }

@@ -51,26 +51,32 @@ const ProtectedRoute = ({ children }) => {
         
         // First check if we already have auth state from signin
         if (isAuthenticated) {
+          console.log('✅ User already authenticated in Redux state');
           setAuthCheckComplete(true);
           setIsInitializing(false);
           return;
         }
         
-        // If not authenticated, try to check with backend (only once)
+        console.log('🔍 Checking authentication with backend (page refresh scenario)');
+        // If not authenticated in Redux, try to check with backend
+        // This happens on page refresh when Redux state is lost
         await dispatch(checkAuthAsync()).unwrap();
+        console.log('✅ Backend auth check successful');
       } catch (error) {
-        console.warn('Auth check failed:', error);
+        console.warn('❌ Auth check failed:', error);
         // On auth check failure, assume not authenticated
+        // This will redirect to signin page
       } finally {
         setAuthCheckComplete(true);
         setIsInitializing(false);
       }
     };
 
-    // Small delay to ensure cookies are available, then check auth
+    // CRITICAL: Extended delay for page refresh scenario
+    // HttpOnly cookies need extra time to be available after page refresh
     const timer = setTimeout(() => {
       checkAuth();
-    }, 100);
+    }, 500); // Increased from 100ms to 500ms for page refresh reliability
     
     return () => clearTimeout(timer);
   }, [dispatch, isAuthenticated, hasCheckedAuth]);

@@ -186,18 +186,6 @@ class AuthService {
         withCredentials: true  // Ensure cookies are included
       });
       
-      // Debug: Check if Set-Cookie headers were received
-      console.log('🍪 [DEBUG] Signin response headers:', response.headers);
-      console.log('🍪 [DEBUG] Set-Cookie headers:', response.headers['set-cookie']);
-      console.log('🍪 [DEBUG] All response headers keys:', Object.keys(response.headers));
-      console.log('🍪 [DEBUG] Raw response:', response);
-      console.log('🍪 [DEBUG] Cookies after signin:', document.cookie);
-      
-      // Wait a moment and check again
-      setTimeout(() => {
-        console.log('🍪 [DEBUG] Cookies after 1s delay:', document.cookie);
-      }, 1000);
-      
       // Tokens are now stored in httpOnly cookies automatically
       // No need to manually set them in JavaScript
       
@@ -259,28 +247,15 @@ class AuthService {
   
   async isAuthenticated() {
     try {
-      console.log('🔐 [authService.isAuthenticated] Making verify-token request');
-      
-      // Debug: Check what cookies are available in the browser
-      console.log('🍪 [DEBUG] All cookies in browser:', document.cookie);
-      console.log('🍪 [DEBUG] Request URL:', API_ENDPOINTS.VERIFY_TOKEN);
-      
       // Try to make an authenticated request with extended timeout for page refresh
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
         withCredentials: true,
         timeout: 5000 // Increased timeout for page refresh scenarios
       });
       
-      console.log('✅ [authService.isAuthenticated] Verify-token success:', response.status);
       return response.status === 200;
     } catch (error) {
       // If request fails, user is not authenticated
-      console.log('❌ [authService.isAuthenticated] Auth check failed:', {
-        status: error.response?.status,
-        message: error.message,
-        url: error.config?.url,
-        availableCookies: document.cookie
-      });
       return false;
     }
   }

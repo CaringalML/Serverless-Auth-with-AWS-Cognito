@@ -1,3 +1,10 @@
+# Data source for the SSL certificate (must be in us-east-1 for CloudFront)
+data "aws_acm_certificate" "cloudfront" {
+  provider = aws.us_east_1
+  domain   = "filodelight.online"
+  statuses = ["ISSUED"]
+}
+
 resource "aws_cloudfront_origin_access_control" "s3_oac" {
   name                              = "${var.oac_name}-${var.environment}"
   description                       = "Origin Access Control for React frontend S3 bucket"
@@ -12,6 +19,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   price_class         = var.cloudfront_price_class
   default_root_object = "index.html"
   comment             = "React Frontend CDN Distribution"
+  aliases             = ["filodelight.online"]
 
   origin {
     domain_name              = aws_s3_bucket.storage_bucket.bucket_regional_domain_name
@@ -62,7 +70,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = data.aws_acm_certificate.cloudfront.arn
+    minimum_protocol_version = "TLSv1.2_2021"
+    ssl_support_method       = "sni-only"
   }
 
   tags = merge(

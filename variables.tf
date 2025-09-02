@@ -43,7 +43,7 @@ variable "api_gateway_endpoint_type" {
 variable "cors_allow_origin" {
   description = "CORS allow origin header value. Must be specific origin when using credentials (not *)"
   type        = string
-  default     = "https://d1gjet2p4vcoj0.cloudfront.net"
+  default     = "https://filodelight.online"
 }
 
 variable "cors_allow_headers" {

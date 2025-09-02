@@ -27,7 +27,7 @@ def create_response(status_code, body, cookies=None):
     
     return response
 
-def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True, same_site='None'):
+def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True, same_site='Strict'):
     """
     Create a cookie string with security settings
     
@@ -37,7 +37,7 @@ def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True
         max_age_seconds: Cookie lifetime in seconds (default: 7 days for access token, 30 days for refresh)
         http_only: Prevent JavaScript access (default: True)
         secure: Only send over HTTPS (default: True)
-        same_site: CSRF protection (default: 'None' for cross-origin testing)
+        same_site: CSRF protection (default: 'Strict' for same-domain security)
     """
     cookie_parts = [f"{name}={value}"]
     

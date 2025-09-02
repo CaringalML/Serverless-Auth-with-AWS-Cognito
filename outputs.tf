@@ -1,6 +1,16 @@
 output "api_endpoint" {
-  description = "API Gateway endpoint URL"
+  description = "API Gateway endpoint URL (direct)"
   value       = aws_api_gateway_stage.main.invoke_url
+}
+
+output "api_custom_domain" {
+  description = "API Gateway custom domain URL"
+  value       = "https://source.filodelight.online"
+}
+
+output "frontend_domain" {
+  description = "Frontend application domain"
+  value       = "https://filodelight.online"
 }
 
 output "cognito_user_pool_id" {

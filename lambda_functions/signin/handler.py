@@ -64,11 +64,11 @@ def lambda_handler(event, context):
             # Decode ID token to get user info
             user_info = decode_token_payload(id_token)
             
-            # Create httpOnly cookies for tokens (temporary: SameSite=None for cross-origin testing)
+            # Create httpOnly cookies for tokens with strict security
             cookies = [
-                create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True, same_site='None'),
-                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True, same_site='None'),
-                create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True, same_site='None')  # 30 days
+                create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
+                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True),
+                create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # 30 days
             ]
             
             # Return success with user info for immediate use

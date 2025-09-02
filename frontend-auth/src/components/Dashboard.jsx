@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout, checkAuthAsync } from '../store/slices/authSlice';
+import { logout } from '../store/slices/authSlice';
 import authService from '../services/authService';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user, isAuthenticated, loading } = useSelector((state) => state.auth);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [userInfo, setUserInfo] = useState(null);
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
 

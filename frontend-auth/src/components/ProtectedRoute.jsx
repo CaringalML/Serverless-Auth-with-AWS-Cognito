@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { checkAuthAsync } from '../store/slices/authSlice';
-import authService from '../services/authService';
 
 /**
  * ProtectedRoute - Wrapper component for routes requiring authentication

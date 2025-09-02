@@ -44,8 +44,8 @@ resource "aws_route53_record" "cloudfront_cert_validation" {
 
 # Certificate validation for CloudFront
 resource "aws_acm_certificate_validation" "cloudfront" {
-  provider        = aws.us_east_1
-  certificate_arn = aws_acm_certificate.cloudfront.arn
+  provider                = aws.us_east_1
+  certificate_arn         = aws_acm_certificate.cloudfront.arn
   validation_record_fqdns = [for record in aws_route53_record.cloudfront_cert_validation : record.fqdn]
 
   timeouts {
@@ -89,7 +89,7 @@ resource "aws_route53_record" "api_cert_validation" {
 
 # Certificate validation for API
 resource "aws_acm_certificate_validation" "api" {
-  certificate_arn = aws_acm_certificate.api.arn
+  certificate_arn         = aws_acm_certificate.api.arn
   validation_record_fqdns = [for record in aws_route53_record.api_cert_validation : record.fqdn]
 
   timeouts {
@@ -129,7 +129,7 @@ resource "aws_route53_record" "root" {
 
   alias {
     name                   = "d1gjet2p4vcoj0.cloudfront.net"
-    zone_id                = "Z2FDTNDATAQYW2"  # CloudFront's hosted zone ID (this is always the same for all CloudFront distributions)
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront's hosted zone ID (this is always the same for all CloudFront distributions)
     evaluate_target_health = false
   }
 }

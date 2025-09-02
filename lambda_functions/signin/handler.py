@@ -5,7 +5,7 @@ import sys
 from botocore.exceptions import ClientError
 
 sys.path.append('/opt')
-from utils import create_response, parse_body
+from utils import create_response, parse_body, create_cookie
 
 cognito_client = boto3.client('cognito-idp')
 
@@ -33,13 +33,25 @@ def lambda_handler(event, context):
                 }
             )
             
+            # Extract tokens
+            auth_result = response['AuthenticationResult']
+            access_token = auth_result['AccessToken']
+            id_token = auth_result['IdToken']
+            refresh_token = auth_result['RefreshToken']
+            expires_in = auth_result['ExpiresIn']
+            
+            # Create httpOnly cookies for tokens
+            cookies = [
+                create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
+                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True),
+                create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # 30 days
+            ]
+            
+            # Return success without exposing tokens in response body
             return create_response(200, {
                 'message': 'Sign in successful',
-                'accessToken': response['AuthenticationResult']['AccessToken'],
-                'idToken': response['AuthenticationResult']['IdToken'],
-                'refreshToken': response['AuthenticationResult']['RefreshToken'],
-                'expiresIn': response['AuthenticationResult']['ExpiresIn']
-            })
+                'expiresIn': expires_in
+            }, cookies=cookies)
             
         except ClientError as e:
             error_code = e.response['Error']['Code']

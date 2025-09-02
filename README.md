@@ -14,11 +14,14 @@ Full-stack authentication system using AWS Cognito, Lambda, API Gateway, DynamoD
 ## Features
 
 - User signup with email verification
-- User signin with JWT tokens
+- User signin with JWT tokens (stored in secure cookies)
 - Password reset functionality
-- Protected dashboard route
+- Protected dashboard route with session management
 - Modern UI with Tailwind CSS
 - State management with Redux Toolkit
+- Automatic token refresh mechanism
+- Inactivity timeout with warning system
+- Secure cookie-based authentication
 
 ## Setup Instructions
 
@@ -82,33 +85,96 @@ npm start
 - `POST /auth/forgot-password` - Request password reset
 - `POST /auth/reset-password` - Reset password
 
-## Security Notes
+## Security Implementation
 
-1. JWT tokens are stored in localStorage (for simplicity)
-2. Tokens are automatically included in API requests
-3. CORS is configured for all origins (update for production)
-4. Password requirements: 8+ characters, uppercase, lowercase, numbers, symbols
+### Current Security Features
+1. **Cookie-Based Authentication**:
+   - JWT tokens (access, refresh, ID) stored in secure browser cookies
+   - Cookies configured with `SameSite=Strict` to prevent CSRF attacks
+   - `Secure` flag automatically enabled for HTTPS connections
+   - No sensitive tokens stored in localStorage
 
-## Next Steps for Production
+2. **Token Management**:
+   - Automatic token refresh before expiration (5-minute proactive refresh)
+   - Axios interceptors handle token inclusion in API requests
+   - Automatic retry with token refresh on 401 responses
+   - Secure token rotation mechanism
 
-1. **Security Enhancements**:
-   - Store tokens in httpOnly cookies
-   - Implement refresh token rotation
-   - Add rate limiting
-   - Configure specific CORS origins
-   - Add API key authentication
+3. **Session Security**:
+   - 2-hour inactivity timeout with 5-minute warning
+   - Activity tracking (mouse, keyboard, scroll events)
+   - Automatic logout on inactivity
+   - Session extension capability
 
-2. **Infrastructure**:
-   - Add CloudFront distribution
-   - Configure custom domain
-   - Set up monitoring and alerting
-   - Add backup and disaster recovery
+4. **Error Handling**:
+   - Sign-in errors persisted in localStorage for UX (non-sensitive data only)
+   - User-friendly error messages with technical details logged separately
+   - Comprehensive error logging system
 
-3. **Frontend**:
-   - Add token expiry handling
-   - Implement session timeout
-   - Add loading states
-   - Improve error handling
+5. **Password Requirements**:
+   - Minimum 8 characters
+   - Must include uppercase, lowercase, numbers, and special characters
+   - Real-time validation feedback
+
+6. **CORS Configuration**:
+   - Currently configured for all origins (update for production)
+
+## Recommended Production Enhancements
+
+### Security Improvements
+1. **Enhanced Cookie Security**:
+   - Implement httpOnly cookies (prevents JavaScript access to tokens)
+   - Add CSRF token validation
+   - Implement secure cookie encryption
+
+2. **Advanced Token Management**:
+   - Implement refresh token rotation (single-use refresh tokens)
+   - Add token blacklisting for logout
+   - Implement shorter token lifetimes
+
+3. **API Security**:
+   - Add rate limiting per user/IP
+   - Configure specific CORS origins (no wildcards)
+   - Implement API key authentication
+   - Add request signing/HMAC validation
+
+4. **Infrastructure Security**:
+   - Enable AWS WAF for DDoS protection
+   - Implement CloudFront with geo-restrictions
+   - Add VPC endpoints for Lambda functions
+   - Enable AWS CloudTrail for audit logging
+
+### Infrastructure Enhancements
+1. **Performance & Scalability**:
+   - Add CloudFront CDN distribution
+   - Implement Lambda@Edge for authentication
+   - Configure auto-scaling for Lambda concurrency
+   - Add ElastiCache for session management
+
+2. **Reliability**:
+   - Set up multi-region failover
+   - Implement automated backups for DynamoDB
+   - Add disaster recovery plan
+   - Configure dead letter queues
+
+3. **Monitoring & Observability**:
+   - Set up CloudWatch dashboards
+   - Implement distributed tracing with X-Ray
+   - Add custom metrics and alarms
+   - Configure log aggregation
+
+### Application Enhancements
+1. **User Experience**:
+   - Add social login providers (Google, Facebook, etc.)
+   - Implement MFA/2FA support
+   - Add remember me functionality
+   - Implement progressive web app features
+
+2. **Developer Experience**:
+   - Add API versioning
+   - Implement OpenAPI/Swagger documentation
+   - Add integration tests
+   - Set up CI/CD pipelines
 
 ## Environment Variables
 

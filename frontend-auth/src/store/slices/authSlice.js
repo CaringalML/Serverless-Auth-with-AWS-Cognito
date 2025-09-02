@@ -35,11 +35,19 @@ export const verify = createAsyncThunk(
 
 export const signin = createAsyncThunk(
   'auth/signin',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password }, { rejectWithValue, dispatch }) => {
     try {
       const response = await authService.signin(email, password);
-      const userInfo = authService.getUserInfo();
-      return { ...response, user: userInfo };
+      
+      // After successful signin, get user info from httpOnly cookies
+      try {
+        const userInfo = await authService.getUserInfo();
+        return { ...response, user: userInfo };
+      } catch (userInfoError) {
+        // If getUserInfo fails, still return successful signin but without user data
+        console.warn('Failed to get user info after signin:', userInfoError);
+        return response;
+      }
     } catch (error) {
       // Extract error message from server response
       const errorMessage = error.error || error.message || 'Invalid email or password';
@@ -76,10 +84,10 @@ export const checkAuthAsync = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      const isAuth = authService.isAuthenticated();
+      const isAuth = await authService.isAuthenticated();
       
       if (isAuth) {
-        const userInfo = authService.getUserInfo();
+        const userInfo = await authService.getUserInfo();
         return { user: userInfo, isAuthenticated: true };
       } else {
         return { user: null, isAuthenticated: false };
@@ -95,6 +103,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
+      // Note: logout is now async, but we update state immediately
       authService.logout();
       state.user = null;
       state.isAuthenticated = false;
@@ -103,13 +112,7 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    checkAuth: (state) => {
-      if (authService.isAuthenticated()) {
-        const userInfo = authService.getUserInfo();
-        state.user = userInfo;
-        state.isAuthenticated = true;
-      }
-    },
+    // Remove checkAuth sync reducer as auth checking is now async
   },
   extraReducers: (builder) => {
     builder
@@ -146,7 +149,7 @@ const authSlice = createSlice({
       })
       .addCase(signin.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
+        state.user = action.payload.user || null;
         state.isAuthenticated = true;
         state.error = null; // Clear error only on successful signin
       })
@@ -198,5 +201,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, checkAuth } = authSlice.actions;
+export const { logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

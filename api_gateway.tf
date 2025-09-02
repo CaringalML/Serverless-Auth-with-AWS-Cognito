@@ -64,6 +64,18 @@ locals {
       path_part = "refresh"
       method    = "POST"
     }
+    logout = {
+      path_part = "logout"
+      method    = "POST"
+    }
+    verify_token = {
+      path_part = "verify-token"
+      method    = "GET"
+    }
+    user_info = {
+      path_part = "user-info"
+      method    = "GET"
+    }
   }
 }
 

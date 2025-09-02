@@ -4,7 +4,6 @@ import loggingService from './loggingService';
 
 class AuthService {
   constructor() {
-    this.token = this.getTokenFromCookie();
     this.isRefreshing = false;
     this.refreshPromise = null;
     this.lastActivityTime = Date.now();
@@ -17,48 +16,27 @@ class AuthService {
     this.onInactivityWarning = null;
     this.onInactivityLogout = null;
     
-    this.cleanupLocalStorage(); // Clean up any old localStorage tokens
     this.setupAxiosInterceptors();
     this.startActivityTracking();
     this.startProactiveRefresh();
   }
 
-  // Cookie utility methods
-  setCookie(name, value, days = 7) {
-    const maxAge = days * 24 * 60 * 60; // Convert days to seconds
-    let cookieString = `${name}=${value}; Max-Age=${maxAge}; Path=/; SameSite=Strict`;
-    
-    // Add Secure flag for HTTPS
-    if (window.location.protocol === 'https:') {
-      cookieString += '; Secure';
-    }
-    
-    document.cookie = cookieString;
-  }
-
-  getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-  }
-
-  deleteCookie(name) {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict`;
-  }
-
-  getTokenFromCookie() {
-    return this.getCookie('accessToken');
-  }
-
-  cleanupLocalStorage() {
-    // Remove any old localStorage tokens from previous versions
+  // Note: With httpOnly cookies, we can't access tokens from JavaScript
+  // The cookies are automatically included in HTTP requests
+  // We can only detect authentication status by making API calls
+  
+  // Check if user appears to be authenticated by making a test API call
+  async checkAuthStatus() {
     try {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('idToken');
-    } catch (e) {
-      // Ignore errors if localStorage is not available
+      // Make a simple API call that requires authentication
+      // This will automatically include httpOnly cookies
+      const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, { 
+        withCredentials: true,
+        timeout: 5000 
+      });
+      return response.status === 200;
+    } catch (error) {
+      return false;
     }
   }
 
@@ -68,10 +46,9 @@ class AuthService {
         // Add timing metadata
         config.metadata = { startTime: Date.now() };
         
-        const token = this.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+        // Ensure cookies are included in all requests (for httpOnly cookies)
+        config.withCredentials = true;
+        
         return config;
       },
       (error) => {
@@ -117,23 +94,8 @@ class AuthService {
                               originalRequest?.url?.includes('/auth/refresh');
         
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
-          // Only try refresh if we have a refresh token
-          const refreshToken = this.getRefreshToken();
-          if (!refreshToken) {
-            // Log token refresh failure
-            loggingService.logTokenEvent('REFRESH_FAILED', 'refresh_token', {
-              reason: 'No refresh token available',
-              url: originalRequest.url
-            });
-            
-            // Silent logout - don't show technical error to user
-            this.logout();
-            window.location.href = '/signin';
-            
-            // Return user-friendly error
-            const userError = new Error(loggingService.getUserFriendlyMessage('No refresh token available'));
-            return Promise.reject(userError);
-          }
+          // With httpOnly cookies, we can't check if refresh token exists
+          // Just attempt refresh - the backend will handle it
           
           originalRequest._retry = true;
           
@@ -142,8 +104,7 @@ class AuthService {
             await this.refreshAccessToken();
             loggingService.logTokenRefresh(true);
             
-            // Update the authorization header with new token
-            originalRequest.headers.Authorization = `Bearer ${this.getToken()}`;
+            // No need to update headers - httpOnly cookies are automatically included
             // Retry the original request
             return axios(originalRequest);
           } catch (refreshError) {
@@ -221,24 +182,19 @@ class AuthService {
       const response = await axios.post(API_ENDPOINTS.SIGNIN, {
         email,
         password,
+      }, {
+        withCredentials: true  // Ensure cookies are included
       });
       
-      if (response.data.accessToken) {
-        this.setToken(response.data.accessToken);
-        this.setRefreshToken(response.data.refreshToken);
-        this.setIdToken(response.data.idToken);
-        
-        // Set user ID for logging
-        const userInfo = this.getUserInfo();
-        loggingService.setUserId(userInfo?.sub || userInfo?.email);
-        
-        // Start activity tracking after successful login
-        this.updateLastActivity();
-        this.startActivityTracking();
-        
-        // Log successful login
-        loggingService.logLogin(true, email);
-      }
+      // Tokens are now stored in httpOnly cookies automatically
+      // No need to manually set them in JavaScript
+      
+      // Start activity tracking after successful login
+      this.updateLastActivity();
+      this.startActivityTracking();
+      
+      // Log successful login
+      loggingService.logLogin(true, email);
       
       return response.data;
     } catch (error) {
@@ -284,51 +240,46 @@ class AuthService {
     }
   }
 
-  setToken(token) {
-    this.token = token;
-    this.setCookie('accessToken', token, 7); // 7 days
+  // With httpOnly cookies, we cannot access tokens from JavaScript
+  // Authentication status is determined by making API calls
+  
+  async isAuthenticated() {
+    try {
+      // Try to make an authenticated request
+      const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
+        withCredentials: true,
+        timeout: 3000
+      });
+      return response.status === 200;
+    } catch (error) {
+      // If request fails, user is not authenticated
+      return false;
+    }
   }
 
-  setRefreshToken(token) {
-    this.setCookie('refreshToken', token, 30); // 30 days for refresh token
-  }
-
-  setIdToken(token) {
-    this.setCookie('idToken', token, 7); // 7 days
-  }
-
-  getToken() {
-    return this.token || this.getCookie('accessToken');
-  }
-
-  getRefreshToken() {
-    return this.getCookie('refreshToken');
-  }
-
-  getIdToken() {
-    return this.getCookie('idToken');
-  }
-
-  isAuthenticated() {
-    return !!this.getToken();
-  }
-
-  logout() {
-    // Log logout event
-    loggingService.logLogout('user_initiated');
-    
-    this.token = null;
-    // Clear cookies
-    this.deleteCookie('accessToken');
-    this.deleteCookie('refreshToken');
-    this.deleteCookie('idToken');
-    // Stop activity tracking
-    this.stopActivityTracking();
-    // Stop proactive refresh
-    this.stopProactiveRefresh();
-    
-    // Clear user ID from logging service
-    loggingService.setUserId(null);
+  async logout() {
+    try {
+      // Log logout event
+      loggingService.logLogout('user_initiated');
+      
+      // Call logout endpoint to clear httpOnly cookies
+      await axios.post(API_ENDPOINTS.LOGOUT, {}, {
+        withCredentials: true
+      });
+      
+      // Stop activity tracking
+      this.stopActivityTracking();
+      // Stop proactive refresh
+      this.stopProactiveRefresh();
+      
+      // Clear user ID from logging service
+      loggingService.setUserId(null);
+    } catch (error) {
+      // Even if logout fails, clean up local state
+      this.stopActivityTracking();
+      this.stopProactiveRefresh();
+      loggingService.setUserId(null);
+    }
   }
 
   decodeToken(token) {
@@ -348,9 +299,16 @@ class AuthService {
     }
   }
 
-  getUserInfo() {
-    const idToken = this.getIdToken();
-    return this.decodeToken(idToken);
+  // With httpOnly cookies, we need to get user info from the backend
+  async getUserInfo() {
+    try {
+      const response = await axios.get(API_ENDPOINTS.USER_INFO, {
+        withCredentials: true
+      });
+      return response.data;
+    } catch (error) {
+      return null;
+    }
   }
 
   async refreshAccessToken() {
@@ -359,31 +317,18 @@ class AuthService {
       return this.refreshPromise;
     }
 
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      const error = new Error('No refresh token available - user needs to login again');
-      error.code = 'NO_REFRESH_TOKEN';
-      throw error;
-    }
-
     this.isRefreshing = true;
     
     try {
-      this.refreshPromise = axios.post(API_ENDPOINTS.REFRESH, {
-        refreshToken: refreshToken
-      }, {
+      // With httpOnly cookies, refresh token is automatically included
+      this.refreshPromise = axios.post(API_ENDPOINTS.REFRESH, {}, {
+        withCredentials: true,
         _retry: true  // Mark this request to skip interceptor retry logic
       });
       
       const response = await this.refreshPromise;
       
-      if (response.data.accessToken) {
-        this.setToken(response.data.accessToken);
-        if (response.data.idToken) {
-          this.setIdToken(response.data.idToken);
-        }
-      }
-      
+      // New tokens are automatically set in httpOnly cookies by the backend
       return response.data;
     } catch (error) {
       // Don't call logout here - let the interceptor handle it
@@ -395,37 +340,19 @@ class AuthService {
     }
   }
 
-  isTokenExpiringSoon(token, minutesBeforeExpiry = 5) {
-    if (!token) return true;
-    
-    try {
-      const decoded = this.decodeToken(token);
-      if (!decoded || !decoded.exp) return true;
-      
-      const now = Math.floor(Date.now() / 1000);
-      const expiry = decoded.exp;
-      const timeUntilExpiry = expiry - now;
-      
-      return timeUntilExpiry < (minutesBeforeExpiry * 60);
-    } catch (error) {
-      return true;
-    }
-  }
+  // With httpOnly cookies, we can't check token expiry from frontend
+  // Let the backend handle token refresh automatically
 
   async checkAndRefreshToken() {
-    const accessToken = this.getToken();
-    
-    if (this.isTokenExpiringSoon(accessToken)) {
-      try {
-        await this.refreshAccessToken();
-        return true;
-      } catch (error) {
-        console.error('Failed to refresh token:', error);
-        return false;
-      }
+    // With httpOnly cookies, we'll let the axios interceptors handle token refresh
+    // Just check if we're still authenticated
+    try {
+      const isAuth = await this.isAuthenticated();
+      return isAuth;
+    } catch (error) {
+      console.error('Failed to check authentication:', error);
+      return false;
     }
-    
-    return true;
   }
 
   startProactiveRefresh() {

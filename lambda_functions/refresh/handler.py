@@ -5,15 +5,28 @@ import sys
 from botocore.exceptions import ClientError
 
 sys.path.append('/opt')
-from utils import create_response, parse_body
+from utils import create_response, parse_body, create_cookie
 
 cognito_client = boto3.client('cognito-idp')
 
 def lambda_handler(event, context):
     try:
-        body = parse_body(event)
+        # Try to get refresh token from cookie first, then fall back to body
+        cookies = event.get('headers', {}).get('Cookie', '')
+        refresh_token = None
         
-        refresh_token = body.get('refreshToken')
+        # Parse cookies to find refreshToken
+        if cookies:
+            for cookie in cookies.split(';'):
+                cookie = cookie.strip()
+                if cookie.startswith('refreshToken='):
+                    refresh_token = cookie.split('=', 1)[1]
+                    break
+        
+        # Fall back to body if not in cookies (for backward compatibility)
+        if not refresh_token:
+            body = parse_body(event)
+            refresh_token = body.get('refreshToken')
         
         if not refresh_token:
             return create_response(400, {
@@ -31,12 +44,23 @@ def lambda_handler(event, context):
                 }
             )
             
+            # Extract new tokens
+            auth_result = response['AuthenticationResult']
+            access_token = auth_result['AccessToken']
+            id_token = auth_result['IdToken']
+            expires_in = auth_result['ExpiresIn']
+            
+            # Create httpOnly cookies for new tokens
+            cookies = [
+                create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
+                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True)
+            ]
+            
+            # Return success without exposing tokens in response body
             return create_response(200, {
                 'message': 'Token refreshed successfully',
-                'accessToken': response['AuthenticationResult']['AccessToken'],
-                'idToken': response['AuthenticationResult']['IdToken'],
-                'expiresIn': response['AuthenticationResult']['ExpiresIn']
-            })
+                'expiresIn': expires_in
+            }, cookies=cookies)
             
         except ClientError as e:
             error_code = e.response['Error']['Code']

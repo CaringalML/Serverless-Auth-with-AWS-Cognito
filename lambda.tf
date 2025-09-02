@@ -47,6 +47,18 @@ locals {
       handler = "handler.lambda_handler"
       timeout = 10
     }
+    logout = {
+      handler = "handler.lambda_handler"
+      timeout = 10
+    }
+    verify_token = {
+      handler = "handler.lambda_handler"
+      timeout = 10
+    }
+    user_info = {
+      handler = "handler.lambda_handler"
+      timeout = 10
+    }
   }
 }
 

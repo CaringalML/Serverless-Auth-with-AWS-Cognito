@@ -186,6 +186,11 @@ class AuthService {
         withCredentials: true  // Ensure cookies are included
       });
       
+      // Debug: Check if Set-Cookie headers were received
+      console.log('🍪 [DEBUG] Signin response headers:', response.headers);
+      console.log('🍪 [DEBUG] Set-Cookie headers:', response.headers['set-cookie']);
+      console.log('🍪 [DEBUG] Cookies after signin:', document.cookie);
+      
       // Tokens are now stored in httpOnly cookies automatically
       // No need to manually set them in JavaScript
       

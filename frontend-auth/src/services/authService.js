@@ -189,7 +189,14 @@ class AuthService {
       // Debug: Check if Set-Cookie headers were received
       console.log('🍪 [DEBUG] Signin response headers:', response.headers);
       console.log('🍪 [DEBUG] Set-Cookie headers:', response.headers['set-cookie']);
+      console.log('🍪 [DEBUG] All response headers keys:', Object.keys(response.headers));
+      console.log('🍪 [DEBUG] Raw response:', response);
       console.log('🍪 [DEBUG] Cookies after signin:', document.cookie);
+      
+      // Wait a moment and check again
+      setTimeout(() => {
+        console.log('🍪 [DEBUG] Cookies after 1s delay:', document.cookie);
+      }, 1000);
       
       // Tokens are now stored in httpOnly cookies automatically
       // No need to manually set them in JavaScript

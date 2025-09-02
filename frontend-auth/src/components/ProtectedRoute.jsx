@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { checkAuthAsync } from '../store/slices/authSlice';
 import authService from '../services/authService';
 
 /**
@@ -29,27 +30,41 @@ import authService from '../services/authService';
  * </ProtectedRoute>
  */
 const ProtectedRoute = ({ children }) => {
+  const dispatch = useDispatch();
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
   
   // Initialize with loading state to prevent premature redirects
   const [isInitializing, setIsInitializing] = useState(true);
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
 
   useEffect(() => {
-    // CRITICAL: 100ms delay ensures secure cookies are fully available
-    // to JavaScript before authentication check occurs.
-    // This prevents false negatives on page refresh.
+    // Check authentication status on mount
+    const checkAuth = async () => {
+      try {
+        // Dispatch async auth check to update Redux state
+        await dispatch(checkAuthAsync()).unwrap();
+      } catch (error) {
+        console.warn('Auth check failed:', error);
+      } finally {
+        setAuthCheckComplete(true);
+        setIsInitializing(false);
+      }
+    };
+
+    // Small delay to ensure cookies are available, then check auth
     const timer = setTimeout(() => {
-      setIsInitializing(false);
+      checkAuth();
     }, 100);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [dispatch]);
 
   // Show loading spinner while:
   // - Redux is checking authentication (loading = true)
   // - Component is initializing (isInitializing = true)
+  // - Auth check is not complete (authCheckComplete = false)
   // This prevents flashing and premature redirects
-  if (loading || isInitializing) {
+  if (loading || isInitializing || !authCheckComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-teal-100">
         <div className="flex flex-col items-center">
@@ -63,11 +78,9 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // DUAL AUTHENTICATION CHECK:
-  // 1. Redux state (isAuthenticated) - primary check
-  // 2. AuthService direct check - fallback for cookie-based auth
-  // Only redirect if BOTH checks fail to ensure reliability
-  if (!isAuthenticated && !authService.isAuthenticated()) {
+  // With httpOnly cookies, rely on Redux state from async checkAuthAsync
+  // The auth check was already performed in useEffect above
+  if (!isAuthenticated) {
     return <Navigate to="/signin" replace />;
   }
 

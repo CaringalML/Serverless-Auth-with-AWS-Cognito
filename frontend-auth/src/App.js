@@ -1,7 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { checkAuthAsync } from './store/slices/authSlice';
 
 import SignUp from './components/SignUp';
 import SignIn from './components/SignIn';
@@ -13,11 +11,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import InactivityWarning from './components/InactivityWarning';
 
 function App() {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(checkAuthAsync());
-  }, [dispatch]);
+  // Note: Auth checking is now handled by ProtectedRoute components
+  // This prevents race conditions and duplicate auth checks
 
   return (
     <Router>

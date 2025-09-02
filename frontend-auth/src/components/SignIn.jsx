@@ -113,7 +113,11 @@ const SignIn = () => {
       // Clear persistent error and localStorage on successful sign-in
       setPersistentError('');
       localStorage.removeItem('signin_error');
-      navigate('/dashboard');
+      
+      // Small delay to ensure cookies are set before navigation
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
     } else if (signin.rejected.match(result)) {
       // Handle error directly from the response and store in localStorage
       const errorMessage = result.payload || 'Invalid email or password';

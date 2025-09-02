@@ -249,6 +249,10 @@ class AuthService {
     try {
       console.log('🔐 [authService.isAuthenticated] Making verify-token request');
       
+      // Debug: Check what cookies are available in the browser
+      console.log('🍪 [DEBUG] All cookies in browser:', document.cookie);
+      console.log('🍪 [DEBUG] Request URL:', API_ENDPOINTS.VERIFY_TOKEN);
+      
       // Try to make an authenticated request with extended timeout for page refresh
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
         withCredentials: true,
@@ -262,7 +266,8 @@ class AuthService {
       console.log('❌ [authService.isAuthenticated] Auth check failed:', {
         status: error.response?.status,
         message: error.message,
-        url: error.config?.url
+        url: error.config?.url,
+        availableCookies: document.cookie
       });
       return false;
     }

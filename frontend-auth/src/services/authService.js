@@ -15,10 +15,10 @@ class AuthService {
     this.proactiveRefreshInterval = null; // Track the refresh interval
     this.onInactivityWarning = null;
     this.onInactivityLogout = null;
+    this._isAuthenticatedLocally = false; // Track auth state locally
     
     this.setupAxiosInterceptors();
-    this.startActivityTracking();
-    this.startProactiveRefresh();
+    // Don't start activity tracking automatically - wait for successful login
   }
 
   // Note: With httpOnly cookies, we can't access tokens from JavaScript
@@ -189,9 +189,11 @@ class AuthService {
       // Tokens are now stored in httpOnly cookies automatically
       // No need to manually set them in JavaScript
       
-      // Start activity tracking after successful login
+      // Set local auth state and start activity tracking after successful login
+      this._isAuthenticatedLocally = true;
       this.updateLastActivity();
       this.startActivityTracking();
+      this.startProactiveRefresh();
       
       // Log successful login
       loggingService.logLogin(true, email);
@@ -268,9 +270,9 @@ class AuthService {
         withCredentials: true
       });
       
-      // Stop activity tracking
+      // Clear local auth state and stop tracking
+      this._isAuthenticatedLocally = false;
       this.stopActivityTracking();
-      // Stop proactive refresh
       this.stopProactiveRefresh();
       
       // Clear user ID from logging service
@@ -364,7 +366,7 @@ class AuthService {
     
     // Check token every 5 minutes and refresh if needed (only if user is active)
     this.proactiveRefreshInterval = setInterval(async () => {
-      if (this.isAuthenticated() && !this.isRefreshing && this.isUserActive()) {
+      if (this._isAuthenticatedLocally && !this.isRefreshing && this.isUserActive()) {
         await this.checkAndRefreshToken();
       }
     }, 5 * 60 * 1000); // 5 minutes
@@ -404,7 +406,7 @@ class AuthService {
   }
 
   startActivityTracking() {
-    if (!this.isAuthenticated()) return;
+    if (!this._isAuthenticatedLocally) return;
 
     // Track user activity events
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -444,7 +446,7 @@ class AuthService {
     if (this.warningTimer) clearTimeout(this.warningTimer);
     if (this.logoutTimer) clearTimeout(this.logoutTimer);
 
-    if (!this.isAuthenticated()) return;
+    if (!this._isAuthenticatedLocally) return;
 
     // Set warning timer (5 minutes before logout)
     this.warningTimer = setTimeout(() => {
@@ -473,11 +475,9 @@ class AuthService {
     // Use specific logout reason
     loggingService.logLogout('inactivity_timeout');
     
-    this.token = null;
-    this.deleteCookie('accessToken');
-    this.deleteCookie('refreshToken');
-    this.deleteCookie('idToken');
+    this._isAuthenticatedLocally = false;
     this.stopActivityTracking();
+    this.stopProactiveRefresh();
     loggingService.setUserId(null);
     
     // Redirect to login page

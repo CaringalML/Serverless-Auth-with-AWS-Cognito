@@ -55,7 +55,7 @@ resource "aws_acm_certificate_validation" "cloudfront" {
 
 # SSL Certificate for API Gateway custom domain (regional)
 resource "aws_acm_certificate" "api" {
-  domain_name       = local.api_domain
+  domain_name       = "${var.api_subdomain}.${var.root_domain}"
   validation_method = "DNS"
 
   lifecycle {
@@ -99,7 +99,7 @@ resource "aws_acm_certificate_validation" "api" {
 
 # API Gateway Custom Domain
 resource "aws_api_gateway_domain_name" "api" {
-  domain_name              = local.api_domain
+  domain_name              = "${var.api_subdomain}.${var.root_domain}"
   regional_certificate_arn = aws_acm_certificate.api.arn
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -137,7 +137,7 @@ resource "aws_route53_record" "root" {
 # DNS Record for API subdomain -> API Gateway
 resource "aws_route53_record" "api" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = local.api_domain
+  name    = "${var.api_subdomain}.${var.root_domain}"
   type    = "A"
 
   alias {

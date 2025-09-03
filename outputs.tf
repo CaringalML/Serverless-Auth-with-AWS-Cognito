@@ -5,12 +5,12 @@ output "api_endpoint" {
 
 output "api_custom_domain" {
   description = "API Gateway custom domain URL"
-  value       = local.api_url
+  value       = "https://${var.api_subdomain}.${var.root_domain}"
 }
 
 output "frontend_domain" {
   description = "Frontend application domain"
-  value       = local.frontend_url
+  value       = "https://${var.root_domain}"
 }
 
 output "cognito_user_pool_id" {

@@ -33,8 +33,8 @@ resource "aws_s3_bucket_cors_configuration" "s3_cors" {
   bucket = aws_s3_bucket.storage_bucket.id
 
   cors_rule {
-    allowed_headers = var.cors_allowed_headers
-    allowed_methods = var.cors_allowed_methods
+    allowed_headers = split(",", var.cors_allow_headers)
+    allowed_methods = ["GET", "POST", "PUT", "DELETE", "HEAD"]
     allowed_origins = ["*"]
     expose_headers  = ["ETag"]
     max_age_seconds = var.cors_max_age_seconds

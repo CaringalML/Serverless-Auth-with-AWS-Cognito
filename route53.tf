@@ -1,16 +1,16 @@
 # Route53 Configuration for Custom Domain
-# This enables same-domain authentication by serving both frontend and API from filodelight.online
+# This enables same-domain authentication by serving both frontend and API from the same root domain
 
 # Data source for existing hosted zone
 data "aws_route53_zone" "main" {
-  name         = "filodelight.online"
+  name         = var.root_domain
   private_zone = false
 }
 
 # SSL Certificate for CloudFront (must be in us-east-1)
 resource "aws_acm_certificate" "cloudfront" {
   provider          = aws.us_east_1
-  domain_name       = "filodelight.online"
+  domain_name       = var.root_domain
   validation_method = "DNS"
 
   lifecycle {
@@ -55,7 +55,7 @@ resource "aws_acm_certificate_validation" "cloudfront" {
 
 # SSL Certificate for API Gateway custom domain (regional)
 resource "aws_acm_certificate" "api" {
-  domain_name       = "source.filodelight.online"
+  domain_name       = local.api_domain
   validation_method = "DNS"
 
   lifecycle {
@@ -97,9 +97,9 @@ resource "aws_acm_certificate_validation" "api" {
   }
 }
 
-# API Gateway Custom Domain for source.filodelight.online
+# API Gateway Custom Domain
 resource "aws_api_gateway_domain_name" "api" {
-  domain_name              = "source.filodelight.online"
+  domain_name              = local.api_domain
   regional_certificate_arn = aws_acm_certificate.api.arn
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -121,23 +121,23 @@ resource "aws_api_gateway_base_path_mapping" "api" {
   domain_name = aws_api_gateway_domain_name.api.domain_name
 }
 
-# DNS Record for root domain (filodelight.online) -> CloudFront
+# DNS Record for root domain -> CloudFront
 resource "aws_route53_record" "root" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "filodelight.online"
+  name    = var.root_domain
   type    = "A"
 
   alias {
-    name                   = "d1gjet2p4vcoj0.cloudfront.net"
-    zone_id                = "Z2FDTNDATAQYW2" # CloudFront's hosted zone ID (this is always the same for all CloudFront distributions)
+    name                   = aws_cloudfront_distribution.s3_distribution.domain_name
+    zone_id                = aws_cloudfront_distribution.s3_distribution.hosted_zone_id
     evaluate_target_health = false
   }
 }
 
-# DNS Record for API subdomain (source.filodelight.online) -> API Gateway
+# DNS Record for API subdomain -> API Gateway
 resource "aws_route53_record" "api" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "source.filodelight.online"
+  name    = local.api_domain
   type    = "A"
 
   alias {

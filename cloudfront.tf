@@ -1,7 +1,7 @@
 # Data source for the SSL certificate (must be in us-east-1 for CloudFront)
 data "aws_acm_certificate" "cloudfront" {
   provider = aws.us_east_1
-  domain   = "filodelight.online"
+  domain   = var.root_domain
   statuses = ["ISSUED"]
 }
 
@@ -19,7 +19,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   price_class         = var.cloudfront_price_class
   default_root_object = "index.html"
   comment             = "React Frontend CDN Distribution"
-  aliases             = ["filodelight.online"]
+  aliases             = [var.root_domain]
 
   origin {
     domain_name              = aws_s3_bucket.storage_bucket.bucket_regional_domain_name

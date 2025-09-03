@@ -43,7 +43,7 @@ class AuthService {
    * 2. Browser automatically includes cookies in API requests
    * 3. Server validates tokens from cookies (invisible to JavaScript)
    * 4. Page refresh works seamlessly (cookies persist)
-   */"
+   */
   
   /**
    * Check authentication status by making API call

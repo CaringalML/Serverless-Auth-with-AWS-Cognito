@@ -1,30 +1,10 @@
-# Terraform Sensitive Variables Example
-# Copy this file to terraform.tfvars and update with your actual values
-# 
-# ⚠️ IMPORTANT: terraform.tfvars should ONLY contain sensitive information
-# All other configuration should be in variables.tf defaults
+# Sensitive Configuration - DO NOT COMMIT TO GIT
+# This file contains secrets and sensitive information only
 
-# ==============================================================
-# SENSITIVE CONFIGURATIONS ONLY - DO NOT COMMIT TO GIT
-# ==============================================================
-
-# Google OAuth 2.0 Credentials (Required for Google Sign-In)
-# Get from: https://console.cloud.google.com
-# APIs & Services → Credentials → OAuth 2.0 Client IDs
+# Google OAuth Credentials (from Google Cloud Console)
 google_client_id     = "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com"
 google_client_secret = "GOCSPX-aBcDeFgHiJkLmNoPqRsTuVwXyZ"
 
 # Alert Email Addresses (for CloudWatch alerts)
 security_alert_email = "your-email@example.com"
 system_alert_email   = "your-email@example.com"
-
-# ==============================================================
-# NON-SENSITIVE CONFIGURATIONS GO IN variables.tf
-# ==============================================================
-# The following are already configured in variables.tf with defaults:
-# - root_domain = "filodelight.online"
-# - api_subdomain = "api"
-# - project_name = "serverless-auth"
-# - environment = "dev"
-# - aws_region = "ap-southeast-2"
-# - cors_allow_origin = "https://filodelight.online"

@@ -533,9 +533,8 @@ For questions, support, or collaboration:
 ## 🏆 Acknowledgments
 
 - AWS for excellent serverless services
-- The React community for amazing tools
-- Contributors and testers
-- Security researchers for vulnerability reports
+- Claude Code models
+
 
 ---
 
@@ -544,4 +543,3 @@ For questions, support, or collaboration:
 
 *Author: Martin Lawrence Caringal (lawrencecaringal5@gmail.com)*  
 *Last Updated: September 2025*  
-*Security Grade: A+ (100/100)*

@@ -437,12 +437,12 @@ resource "aws_api_gateway_method_settings" "signin_rate_limit" {
   method_path = "auth/signin/POST"
 
   settings {
-    throttling_rate_limit  = 5    # 5 requests per second max
-    throttling_burst_limit = 10   # Allow brief burst of 10 requests
-    
+    throttling_rate_limit  = 5  # 5 requests per second max
+    throttling_burst_limit = 10 # Allow brief burst of 10 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
-    data_trace_enabled = false    # Don't log passwords
+    data_trace_enabled = false # Don't log passwords
   }
 }
 
@@ -453,9 +453,9 @@ resource "aws_api_gateway_method_settings" "signup_rate_limit" {
   method_path = "auth/signup/POST"
 
   settings {
-    throttling_rate_limit  = 2    # 2 requests per second max
-    throttling_burst_limit = 5    # Allow brief burst of 5 requests
-    
+    throttling_rate_limit  = 2 # 2 requests per second max
+    throttling_burst_limit = 5 # Allow brief burst of 5 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -469,9 +469,9 @@ resource "aws_api_gateway_method_settings" "forgot_password_rate_limit" {
   method_path = "auth/forgot-password/POST"
 
   settings {
-    throttling_rate_limit  = 1    # 1 request per second max
-    throttling_burst_limit = 3    # Allow brief burst of 3 requests
-    
+    throttling_rate_limit  = 1 # 1 request per second max
+    throttling_burst_limit = 3 # Allow brief burst of 3 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -485,9 +485,9 @@ resource "aws_api_gateway_method_settings" "reset_password_rate_limit" {
   method_path = "auth/reset-password/POST"
 
   settings {
-    throttling_rate_limit  = 3    # 3 requests per second max
-    throttling_burst_limit = 6    # Allow brief burst of 6 requests
-    
+    throttling_rate_limit  = 3 # 3 requests per second max
+    throttling_burst_limit = 6 # Allow brief burst of 6 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -501,9 +501,9 @@ resource "aws_api_gateway_method_settings" "verify_rate_limit" {
   method_path = "auth/verify/POST"
 
   settings {
-    throttling_rate_limit  = 3    # 3 requests per second max
-    throttling_burst_limit = 6    # Allow brief burst of 6 requests
-    
+    throttling_rate_limit  = 3 # 3 requests per second max
+    throttling_burst_limit = 6 # Allow brief burst of 6 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -517,9 +517,9 @@ resource "aws_api_gateway_method_settings" "resend_verification_rate_limit" {
   method_path = "auth/resend-verification/POST"
 
   settings {
-    throttling_rate_limit  = 1    # 1 request per second max
-    throttling_burst_limit = 2    # Allow brief burst of 2 requests
-    
+    throttling_rate_limit  = 1 # 1 request per second max
+    throttling_burst_limit = 2 # Allow brief burst of 2 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -533,9 +533,9 @@ resource "aws_api_gateway_method_settings" "refresh_rate_limit" {
   method_path = "auth/refresh/POST"
 
   settings {
-    throttling_rate_limit  = 10   # 10 requests per second max
-    throttling_burst_limit = 20   # Allow brief burst of 20 requests
-    
+    throttling_rate_limit  = 10 # 10 requests per second max
+    throttling_burst_limit = 20 # Allow brief burst of 20 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -549,9 +549,9 @@ resource "aws_api_gateway_method_settings" "google_auth_rate_limit" {
   method_path = "auth/google/GET"
 
   settings {
-    throttling_rate_limit  = 10   # 10 requests per second max
-    throttling_burst_limit = 20   # Allow brief burst of 20 requests
-    
+    throttling_rate_limit  = 10 # 10 requests per second max
+    throttling_burst_limit = 20 # Allow brief burst of 20 requests
+
     logging_level      = "INFO"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -564,9 +564,9 @@ resource "aws_api_gateway_method_settings" "google_callback_rate_limit" {
   method_path = "auth/google/callback/GET"
 
   settings {
-    throttling_rate_limit  = 10   # 10 requests per second max
-    throttling_burst_limit = 20   # Allow brief burst of 20 requests
-    
+    throttling_rate_limit  = 10 # 10 requests per second max
+    throttling_burst_limit = 20 # Allow brief burst of 20 requests
+
     logging_level      = "INFO"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -580,9 +580,9 @@ resource "aws_api_gateway_method_settings" "user_info_rate_limit" {
   method_path = "auth/user-info/GET"
 
   settings {
-    throttling_rate_limit  = 20   # 20 requests per second max
-    throttling_burst_limit = 40   # Allow brief burst of 40 requests
-    
+    throttling_rate_limit  = 20 # 20 requests per second max
+    throttling_burst_limit = 40 # Allow brief burst of 40 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -596,9 +596,9 @@ resource "aws_api_gateway_method_settings" "logout_rate_limit" {
   method_path = "auth/logout/POST"
 
   settings {
-    throttling_rate_limit  = 10   # 10 requests per second max
-    throttling_burst_limit = 20   # Allow brief burst of 20 requests
-    
+    throttling_rate_limit  = 10 # 10 requests per second max
+    throttling_burst_limit = 20 # Allow brief burst of 20 requests
+
     logging_level      = "ERROR"
     metrics_enabled    = true
     data_trace_enabled = false
@@ -619,13 +619,13 @@ resource "aws_api_gateway_usage_plan" "main" {
 
   # Global throttle settings for the API
   throttle_settings {
-    rate_limit  = 100   # 100 requests per second globally
-    burst_limit = 200   # Allow burst up to 200 requests
+    rate_limit  = 100 # 100 requests per second globally
+    burst_limit = 200 # Allow burst up to 200 requests
   }
 
   # Daily quota to prevent sustained abuse
   quota_settings {
-    limit  = 100000  # 100k requests per day per client
+    limit  = 100000 # 100k requests per day per client
     period = "DAY"
   }
 
@@ -646,12 +646,12 @@ resource "aws_cloudwatch_metric_alarm" "api_throttling_alarm" {
   evaluation_periods  = "2"
   metric_name         = "4XXError"
   namespace           = "AWS/ApiGateway"
-  period              = "300"  # 5 minutes
+  period              = "300" # 5 minutes
   statistic           = "Sum"
-  threshold           = "50"   # Alert if more than 50 4XX errors in 5 minutes
+  threshold           = "50" # Alert if more than 50 4XX errors in 5 minutes
   alarm_description   = "Alert when API rate limiting is triggered excessively"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     ApiName = aws_api_gateway_rest_api.main.name
     Stage   = aws_api_gateway_stage.main.stage_name
@@ -671,12 +671,12 @@ resource "aws_cloudwatch_metric_alarm" "api_request_spike_alarm" {
   evaluation_periods  = "1"
   metric_name         = "Count"
   namespace           = "AWS/ApiGateway"
-  period              = "60"   # 1 minute
+  period              = "60" # 1 minute
   statistic           = "Sum"
   threshold           = "1000" # Alert if more than 1000 requests per minute
   alarm_description   = "Alert on unusual API request spikes that might indicate an attack"
   treat_missing_data  = "notBreaching"
-  
+
   dimensions = {
     ApiName = aws_api_gateway_rest_api.main.name
     Stage   = aws_api_gateway_stage.main.stage_name

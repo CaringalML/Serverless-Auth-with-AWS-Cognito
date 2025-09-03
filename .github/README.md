@@ -424,32 +424,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- 📧 Email: support@yourdomain.com
-- 💬 Slack: [Join our community](https://slack.yourdomain.com)
-- 📖 Documentation: [Full docs](https://docs.yourdomain.com)
+- 📧 Email: lawrencecaringal5@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/yourusername/Serverless-Auth-Cognito/issues)
 
-## 🎯 Roadmap
-
-- [ ] Multi-factor authentication (MFA)
-- [ ] Social login providers (Facebook, Twitter)
-- [ ] Admin dashboard for user management
-- [ ] Advanced threat detection with ML
-- [ ] WebAuthn/Passkey support
-- [ ] Session recording for security analysis
-- [ ] A/B testing framework for auth flows
-- [ ] GraphQL API support
 
 ## 🏆 Acknowledgments
 
 - AWS for excellent serverless services
-- The React community for amazing tools
-- Contributors and testers
-- Security researchers for vulnerability reports
+- Claude Code
 
 ---
 
 **Built with ❤️ using AWS Serverless Architecture**
 
-*Last Updated: December 2024*
-*Security Grade: A+ (100/100)*
+*Last Updated: 4 September 2024*

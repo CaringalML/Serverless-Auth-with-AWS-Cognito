@@ -352,6 +352,90 @@ REACT_APP_FRONTEND_URL=https://yourdomain.com
 7. **Enable MFA**: For AWS console access
 8. **Backup user data**: Regular DynamoDB backups
 
+## 🚢 CI/CD Pipeline (GitHub Actions)
+
+The project includes a comprehensive CI/CD pipeline that automatically validates, builds, and deploys your application on every push to the `google-OAuth` branch.
+
+### Pipeline Workflow
+
+```yaml
+Trigger: Push to google-OAuth branch
+    ↓
+1. Terraform Validate
+    - Format check
+    - Init & validate configuration
+    ↓
+2. Build & Test
+    - Node.js 20.x setup
+    - Install dependencies
+    - Build React application
+    ↓
+3. Deploy
+    - Upload to S3 bucket
+    - Invalidate CloudFront cache
+```
+
+### Required GitHub Secrets
+
+Configure these secrets in your GitHub repository (Settings → Secrets → Actions):
+
+| Secret Name | Description | Example |
+|-------------|-------------|---------|
+| `AWS_ACCESS_KEY_ID` | AWS IAM user access key | `AKIA...` |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM user secret key | `wJal...` |
+| `REACT_APP_API_URL` | API Gateway endpoint | `https://api.yourdomain.com` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID | `E1234567890ABC` |
+
+### GitHub Actions Configuration
+
+The pipeline is defined in `.github/workflows/aws-deploy.yml` with:
+- **Terraform validation** for infrastructure code quality
+- **Node.js build** for React application
+- **Automatic S3 deployment** with cache invalidation
+- **Environment-specific** configuration support
+
+### Setting Up CI/CD
+
+1. **Create IAM User for GitHub Actions**:
+```bash
+aws iam create-user --user-name github-actions-deploy
+aws iam attach-user-policy --user-name github-actions-deploy \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
+aws iam attach-user-policy --user-name github-actions-deploy \
+  --policy-arn arn:aws:iam::aws:policy/CloudFrontFullAccess
+```
+
+2. **Generate Access Keys**:
+```bash
+aws iam create-access-key --user-name github-actions-deploy
+```
+
+3. **Add Secrets to GitHub**:
+   - Go to repository Settings → Secrets → Actions
+   - Add the four required secrets listed above
+
+4. **Update S3 Bucket Name** in workflow if needed:
+   - Edit `.github/workflows/aws-deploy.yml` line 78
+   - Replace with your actual S3 bucket name
+
+### Manual Deployment Option
+
+If you prefer manual deployment over CI/CD:
+
+```bash
+# Build locally
+cd frontend-auth
+npm run build
+
+# Deploy to S3
+aws s3 sync build/ s3://your-bucket-name --delete
+
+# Invalidate CloudFront
+aws cloudfront create-invalidation \
+  --distribution-id YOUR_DIST_ID \
+  --paths "/*"
+```
+
 ## 🏢 Production Deployment Checklist
 
 - [ ] Configure custom domain with SSL certificate
@@ -364,6 +448,7 @@ REACT_APP_FRONTEND_URL=https://yourdomain.com
 - [ ] Review IAM permissions (least privilege)
 - [ ] Enable AWS CloudTrail for audit logging
 - [ ] Configure CORS for your domain
+- [ ] Set up GitHub Actions secrets for CI/CD
 - [ ] Test disaster recovery procedures
 - [ ] Document runbooks for common operations
 

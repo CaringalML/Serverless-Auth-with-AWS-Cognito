@@ -9,6 +9,7 @@ sys.path.append('/opt')
 from utils import create_response
 
 cognito_client = boto3.client('cognito-idp')
+dynamodb = boto3.resource('dynamodb')
 
 def decode_token_payload(token):
     """Decode JWT token payload (second part)"""
@@ -85,8 +86,8 @@ def lambda_handler(event, context):
             if not user_info:
                 return create_response(400, {'error': 'Invalid ID token'})
             
-            # Return user information
-            return create_response(200, {
+            # Get additional user info from DynamoDB if available
+            user_data = {
                 'sub': user_info.get('sub'),
                 'email': user_info.get('email'),
                 'name': user_info.get('name'),
@@ -95,7 +96,28 @@ def lambda_handler(event, context):
                 'iss': user_info.get('iss'),
                 'exp': user_info.get('exp'),
                 'iat': user_info.get('iat')
-            })
+            }
+            
+            # Try to get additional info from DynamoDB
+            try:
+                table = dynamodb.Table(os.environ['USERS_TABLE'])
+                db_response = table.get_item(Key={'user_id': user_info.get('sub')})
+                
+                if 'Item' in db_response:
+                    db_user = db_response['Item']
+                    # Merge DynamoDB data with JWT data
+                    user_data.update({
+                        'provider': db_user.get('provider', 'COGNITO'),
+                        'created_at': db_user.get('created_at'),
+                        'last_login': db_user.get('last_login'),
+                        'status': db_user.get('status', 'CONFIRMED')
+                    })
+                    print(f"Retrieved additional user info from DynamoDB for {user_info.get('email')}")
+            except Exception as e:
+                print(f"Warning: Could not retrieve user info from DynamoDB: {str(e)}")
+            
+            # Return user information
+            return create_response(200, user_data)
             
         except ClientError as e:
             error_code = e.response['Error']['Code']

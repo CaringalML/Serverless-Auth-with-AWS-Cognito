@@ -98,15 +98,15 @@ variable "api_stage_description" {
 
 # API Gateway Throttling
 variable "api_throttle_rate_limit" {
-  description = "API Gateway throttle rate limit (requests per second)"
+  description = "API Gateway default throttle rate limit (requests per second) for non-auth endpoints"
   type        = number
-  default     = 2000
+  default     = 100  # Reduced from 2000 to prevent abuse
 }
 
 variable "api_throttle_burst_limit" {
-  description = "API Gateway throttle burst limit"
+  description = "API Gateway default throttle burst limit for non-auth endpoints"
   type        = number
-  default     = 5000
+  default     = 200  # Reduced from 5000 to prevent abuse
 }
 
 # API Gateway Logging

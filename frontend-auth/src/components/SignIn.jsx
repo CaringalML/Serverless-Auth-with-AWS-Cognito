@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { signin, clearError } from '../store/slices/authSlice';
+import { signin, clearError, clearSigninError, setSigninError } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
 
 const SignIn = () => {
@@ -21,54 +21,27 @@ const SignIn = () => {
   });
   
   const [showPassword, setShowPassword] = useState(false);
-  const [persistentError, setPersistentError] = useState('');
+  // Remove local state for persistent error - using Redux instead
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading } = useSelector((state) => state.auth);
+  const { loading, signinError } = useSelector((state) => state.auth);
 
-  // Load error from localStorage and URL parameters on component mount
+  // Load error from URL parameters on component mount (for Google OAuth callbacks)
   useEffect(() => {
-    const loadErrorFromStorage = () => {
-      const savedError = localStorage.getItem('signin_error');
-      if (savedError) {
-        setPersistentError(savedError);
-      }
-    };
-
     // Check for OAuth error in URL parameters (from Google OAuth callback)
-    const loadErrorFromUrl = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const errorParam = urlParams.get('error');
-      if (errorParam) {
-        const decodedError = decodeURIComponent(errorParam);
-        setPersistentError(decodedError);
-        localStorage.setItem('signin_error', decodedError);
-        
-        // Clean up URL by removing error parameter
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.delete('error');
-        window.history.replaceState({}, '', newUrl.toString());
-      }
-    };
-
-    // Load errors on mount
-    loadErrorFromStorage();
-    loadErrorFromUrl();
-
-    // Listen for storage events instead of polling
-    const handleStorageChange = (e) => {
-      if (e.key === 'signin_error') {
-        loadErrorFromStorage();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []); // Remove persistentError dependency to avoid infinite loop
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam) {
+      const decodedError = decodeURIComponent(errorParam);
+      dispatch(setSigninError(decodedError));
+      
+      // Clean up URL by removing error parameter
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.delete('error');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [dispatch]);
 
   useEffect(() => {
     // Validate email on change if touched
@@ -127,20 +100,14 @@ const SignIn = () => {
     }));
 
     if (signin.fulfilled.match(result)) {
-      // Clear persistent error and localStorage on successful sign-in
-      setPersistentError('');
-      localStorage.removeItem('signin_error');
+      // Signin error is automatically cleared by Redux on successful signin
       
       // Small delay to ensure cookies are set before navigation
       setTimeout(() => {
         navigate('/dashboard');
       }, 100);
-    } else if (signin.rejected.match(result)) {
-      // Handle error directly from the response and store in localStorage
-      const errorMessage = result.payload || 'Invalid email or password';
-      setPersistentError(errorMessage);
-      localStorage.setItem('signin_error', errorMessage);
     }
+    // Signin error is automatically set by Redux on signin rejection
   };
 
   const handleGoogleSignIn = () => {
@@ -201,20 +168,19 @@ const SignIn = () => {
           <p className="text-gray-600 font-medium text-lg">Sign in to your account</p>
         </div>
         
-        {persistentError && (
+        {signinError && (
           <div className="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-lg mb-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <svg className="w-5 h-5 mr-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">{persistentError}</span>
+                <span className="font-medium">{signinError}</span>
               </div>
               <button
                 onClick={() => {
-                  // Clear from all sources - localStorage is primary, Redux for cleanup
-                  setPersistentError('');
-                  localStorage.removeItem('signin_error');
+                  // Clear signin error from Redux state
+                  dispatch(clearSigninError());
                   dispatch(clearError());
                 }}
                 className="ml-4 text-red-400 hover:text-red-600 transition-colors duration-200"

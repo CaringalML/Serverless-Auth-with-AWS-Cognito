@@ -91,7 +91,8 @@ resource "aws_cognito_user_pool_client" "main" {
 
   explicit_auth_flows = [
     "ALLOW_USER_PASSWORD_AUTH",
-    "ALLOW_REFRESH_TOKEN_AUTH"
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_ADMIN_USER_PASSWORD_AUTH"
   ]
 
   # OAuth configuration for Google SSO
@@ -150,9 +151,9 @@ resource "aws_cognito_identity_provider" "google" {
   provider_details = {
     client_id                     = var.google_client_id
     client_secret                 = var.google_client_secret
-    authorize_scopes              = "email openid profile"
-    attributes_url                = "https://people.googleapis.com/v1/people/me?personFields="
-    attributes_url_add_attributes = "true"
+    authorize_scopes              = "openid email profile"
+    attributes_url                = "https://www.googleapis.com/oauth2/v3/userinfo"
+    attributes_url_add_attributes = "false"
     authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth"
     oidc_issuer                   = "https://accounts.google.com"
     token_request_method          = "POST"
@@ -160,9 +161,10 @@ resource "aws_cognito_identity_provider" "google" {
   }
 
   attribute_mapping = {
-    email    = "email"
-    name     = "name"
-    username = "sub"
+    email          = "email"
+    email_verified = "email_verified"
+    name           = "name"
+    username       = "sub"
   }
 }
 

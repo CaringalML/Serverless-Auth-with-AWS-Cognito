@@ -7,6 +7,7 @@ const initialState = {
   loading: false,
   error: null,
   verificationEmail: null,
+  signinError: null, // Persistent signin error for OAuth callbacks and form errors
 };
 
 export const signup = createAsyncThunk(
@@ -137,9 +138,16 @@ const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
       state.error = null;
+      state.signinError = null;
     },
     clearError: (state) => {
       state.error = null;
+    },
+    clearSigninError: (state) => {
+      state.signinError = null;
+    },
+    setSigninError: (state, action) => {
+      state.signinError = action.payload;
     },
     // Remove checkAuth sync reducer as auth checking is now async
   },
@@ -181,10 +189,12 @@ const authSlice = createSlice({
         state.user = action.payload.user || null;
         state.isAuthenticated = true;
         state.error = null; // Clear error only on successful signin
+        state.signinError = null; // Clear persistent signin error on success
       })
       .addCase(signin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error.message;
+        state.signinError = action.payload || action.error.message; // Set persistent signin error
       })
       .addCase(forgotPassword.pending, (state) => {
         state.loading = true;
@@ -230,5 +240,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, clearSigninError, setSigninError } = authSlice.actions;
 export default authSlice.reducer;

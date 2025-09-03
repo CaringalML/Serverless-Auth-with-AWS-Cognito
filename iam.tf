@@ -69,6 +69,9 @@ resource "aws_iam_policy" "lambda_cognito_access" {
           "cognito-idp:AdminGetUser",
           "cognito-idp:AdminInitiateAuth",
           "cognito-idp:AdminConfirmSignUp",
+          "cognito-idp:AdminSetUserAttributes",
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminSetUserPassword",
           "cognito-idp:ListUsers"
         ]
         Resource = aws_cognito_user_pool.main.arn

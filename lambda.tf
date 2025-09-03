@@ -156,6 +156,8 @@ resource "aws_lambda_function" "auth_functions" {
       COGNITO_DOMAIN         = aws_cognito_user_pool_domain.main.domain
       API_DOMAIN             = "${var.api_subdomain}.${var.root_domain}"
       FRONTEND_DOMAIN        = var.root_domain
+      GOOGLE_CLIENT_ID       = var.google_client_id
+      GOOGLE_CLIENT_SECRET   = var.google_client_secret
     }
   }
 

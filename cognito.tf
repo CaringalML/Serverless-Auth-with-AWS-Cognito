@@ -96,20 +96,20 @@ resource "aws_cognito_user_pool_client" "main" {
 
   # OAuth configuration for Google SSO
   supported_identity_providers = ["COGNITO", "Google"]
-  
+
   callback_urls = [
     "https://${var.root_domain}/auth/callback",
     "https://${var.api_subdomain}.${var.root_domain}/auth/google/callback"
   ]
-  
+
   logout_urls = [
     "https://${var.root_domain}/signin",
     "https://${var.api_subdomain}.${var.root_domain}/auth/logout"
   ]
-  
+
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_flows = ["code"]
-  allowed_oauth_scopes = ["email", "openid", "profile"]
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
 
   generate_secret = false
 
@@ -148,21 +148,21 @@ resource "aws_cognito_identity_provider" "google" {
   provider_type = "Google"
 
   provider_details = {
-    client_id                = var.google_client_id
-    client_secret            = var.google_client_secret
-    authorize_scopes         = "email openid profile"
-    attributes_url           = "https://people.googleapis.com/v1/people/me?personFields="
+    client_id                     = var.google_client_id
+    client_secret                 = var.google_client_secret
+    authorize_scopes              = "email openid profile"
+    attributes_url                = "https://people.googleapis.com/v1/people/me?personFields="
     attributes_url_add_attributes = "true"
-    authorize_url            = "https://accounts.google.com/o/oauth2/v2/auth"
-    oidc_issuer              = "https://accounts.google.com"
-    token_request_method     = "POST"
-    token_url                = "https://www.googleapis.com/oauth2/v4/token"
+    authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth"
+    oidc_issuer                   = "https://accounts.google.com"
+    token_request_method          = "POST"
+    token_url                     = "https://www.googleapis.com/oauth2/v4/token"
   }
 
   attribute_mapping = {
-    email      = "email"
-    name       = "name" 
-    username   = "sub"
+    email    = "email"
+    name     = "name"
+    username = "sub"
   }
 }
 

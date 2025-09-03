@@ -3,7 +3,7 @@
 [![AWS](https://img.shields.io/badge/AWS-Serverless-orange)](https://aws.amazon.com)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-purple)](https://terraform.io)
 [![React](https://img.shields.io/badge/React-19.1-blue)](https://reactjs.org)
-[![Python](https://img.shields.io/badge/Python-3.9-green)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.12-green)](https://python.org)
 
 A production-ready serverless authentication system built on AWS, featuring **100% httpOnly cookie security**, comprehensive rate limiting, and Google OAuth integration.
 
@@ -27,48 +27,169 @@ A production-ready serverless authentication system built on AWS, featuring **10
 📊 **Security Monitoring** - CloudWatch dashboards & alarms  
 🔐 **Token Security** - Access (1hr), Refresh (30 days)  
 
-## 🏗️ Architecture Overview
+## 🏗️ Infrastructure Architecture
 
-### Current Implementation
-
+```mermaid
+graph TB
+    subgraph "User Layer"
+        U[👤 User Browser]
+    end
+    
+    subgraph "CDN & Frontend"
+        CF[☁️ CloudFront CDN<br/>Global Edge Locations]
+        S3[📦 S3 Bucket<br/>Static Website Hosting]
+        CF --> S3
+    end
+    
+    subgraph "API Layer"
+        AG[🚪 API Gateway<br/>REST API + Rate Limiting]
+        R53[🌐 Route53<br/>DNS Management]
+        ACM[🔒 ACM Certificate<br/>SSL/TLS]
+        R53 --> AG
+        ACM --> AG
+    end
+    
+    subgraph "Compute Layer"
+        L1[⚡ signup<br/>Python 3.12]
+        L2[⚡ signin<br/>Python 3.12]
+        L3[⚡ google_auth<br/>Python 3.12]
+        L4[⚡ verify<br/>Python 3.12]
+        L5[⚡ user_info<br/>Python 3.12]
+        L6[⚡ refresh<br/>Python 3.12]
+        L7[⚡ logout<br/>Python 3.12]
+        L8[⚡ forgot_password<br/>Python 3.12]
+        L9[⚡ reset_password<br/>Python 3.12]
+        L10[⚡ verify_token<br/>Python 3.12]
+        L11[⚡ resend_verification<br/>Python 3.12]
+        L12[⚡ custom_message<br/>Python 3.12]
+        LL[📚 Lambda Layer<br/>Shared Utils]
+        
+        AG --> L1
+        AG --> L2
+        AG --> L3
+        AG --> L4
+        AG --> L5
+        AG --> L6
+        AG --> L7
+        AG --> L8
+        AG --> L9
+        AG --> L10
+        AG --> L11
+        AG --> L12
+        
+        L1 -.-> LL
+        L2 -.-> LL
+        L3 -.-> LL
+        L4 -.-> LL
+        L5 -.-> LL
+        L6 -.-> LL
+        L7 -.-> LL
+        L8 -.-> LL
+        L9 -.-> LL
+        L10 -.-> LL
+        L11 -.-> LL
+        L12 -.-> LL
+    end
+    
+    subgraph "Authentication & Database"
+        COG[🔐 AWS Cognito<br/>User Pool + Identity Provider]
+        DDB[🗄️ DynamoDB<br/>User Records Table]
+        GOOGLE[🔍 Google OAuth<br/>Identity Provider]
+        
+        L1 --> COG
+        L2 --> COG
+        L3 --> COG
+        L3 --> GOOGLE
+        L4 --> COG
+        L5 --> COG
+        L5 --> DDB
+        L6 --> COG
+        L8 --> COG
+        L9 --> COG
+        L10 --> COG
+        L11 --> COG
+        L12 --> COG
+    end
+    
+    subgraph "Monitoring & Alerts"
+        CW[📊 CloudWatch<br/>3 Dashboards]
+        CWL[📝 CloudWatch Logs<br/>Function Logs]
+        SNS[📧 SNS Topics<br/>Email Alerts]
+        CWA[⚠️ CloudWatch Alarms<br/>Security & System]
+        
+        L1 --> CWL
+        L2 --> CWL
+        L3 --> CWL
+        L4 --> CWL
+        L5 --> CWL
+        L6 --> CWL
+        L7 --> CWL
+        L8 --> CWL
+        L9 --> CWL
+        L10 --> CWL
+        L11 --> CWL
+        L12 --> CWL
+        
+        CWL --> CW
+        CWA --> SNS
+        AG --> CWA
+    end
+    
+    subgraph "Security Layer"
+        IAM[🔐 IAM Roles<br/>Least Privilege]
+        WAF[🛡️ Rate Limiting<br/>Per-Endpoint Throttling]
+        
+        IAM -.-> L1
+        IAM -.-> L2
+        IAM -.-> L3
+        IAM -.-> L4
+        IAM -.-> L5
+        IAM -.-> L6
+        IAM -.-> L7
+        IAM -.-> L8
+        IAM -.-> L9
+        IAM -.-> L10
+        IAM -.-> L11
+        IAM -.-> L12
+        
+        WAF --> AG
+    end
+    
+    %% User Flow
+    U -->|HTTPS| CF
+    U -->|HttpOnly Cookies<br/>SameSite=Strict| AG
+    
+    %% Styling
+    classDef frontend fill:#e1f5fe
+    classDef api fill:#f3e5f5
+    classDef compute fill:#fff3e0
+    classDef database fill:#e8f5e8
+    classDef monitoring fill:#fff8e1
+    classDef security fill:#ffebee
+    
+    class U,CF,S3 frontend
+    class AG,R53,ACM api
+    class L1,L2,L3,L4,L5,L6,L7,L8,L9,L10,L11,L12,LL compute
+    class COG,DDB,GOOGLE database
+    class CW,CWL,SNS,CWA monitoring
+    class IAM,WAF security
 ```
-Frontend (React 19.1 + Redux Toolkit)
-    ↓
-CloudFront CDN → S3 Static Hosting
-    ↓
-API Gateway (Rate Limited)
-    ↓
-Lambda Functions (Python 3.9):
-  • signup          • signin
-  • google_auth     • refresh
-  • forgot_password • reset_password
-  • verify          • verify_token
-  • user_info       • logout
-  • resend_verification
-  • custom_message (Cognito trigger)
-    ↓
-AWS Cognito User Pool
-    ↓
-DynamoDB (User Records)
-    ↓
-CloudWatch Logs & Dashboards
-    ↓
-SNS Email Alerts
-```
 
-### Domains Configuration
-- **Frontend**: `https://filodelight.online`
-- **API**: `https://api.filodelight.online`
+### Domain Configuration
+- **Frontend**: `https://filodelight.online` (CloudFront → S3)
+- **API**: `https://api.filodelight.online` (Route53 → API Gateway)
 - **Region**: `ap-southeast-2` (Sydney)
+- **SSL**: AWS Certificate Manager (ACM)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- AWS Account
+- AWS Account with programmatic access
 - Terraform >= 1.5
 - Node.js >= 18
-- Python >= 3.9
-- Google OAuth Client (for Google sign-in)
+- Python >= 3.12 (for local Lambda development)
+- Google Cloud Console project
+- Domain registered in Route53 (or external DNS provider)
 
 ### 1. Clone Repository
 ```bash
@@ -76,12 +197,71 @@ git clone https://github.com/CaringalML/Serverless-Auth-with-AWS-Cognito.git
 cd Serverless-Auth-with-AWS-Cognito
 ```
 
-### 2. Configure Variables
+### 2. Set Up Google OAuth (Required for Google Sign-In)
+
+#### Google Cloud Console Configuration
+
+1. **Go to Google Cloud Console**:
+   - Navigate to [Google Cloud Console](https://console.cloud.google.com)
+   - Create a new project or select existing one
+
+2. **Enable APIs**:
+   ```bash
+   # Enable required APIs
+   gcloud services enable gmail.googleapis.com
+   gcloud services enable oauth2.googleapis.com
+   ```
+   Or via Console: APIs & Services → Library → Search "Google+ API" → Enable
+
+3. **Configure OAuth Consent Screen**:
+   - Go to: APIs & Services → OAuth consent screen
+   - Choose "External" user type
+   - Fill required fields:
+     - **App name**: Your App Name
+     - **User support email**: Your email
+     - **Developer contact**: Your email
+   - Add scopes:
+     - `../auth/userinfo.email`
+     - `../auth/userinfo.profile`
+     - `openid`
+
+4. **Create OAuth 2.0 Client ID**:
+   - Go to: APIs & Services → Credentials
+   - Click "Create Credentials" → "OAuth 2.0 Client ID"
+   - Application type: "Web application"
+   - Name: "Serverless Auth Web Client"
+   - **Authorized JavaScript origins**:
+     ```
+     https://filodelight.online
+     https://api.filodelight.online
+     ```
+   - **Authorized redirect URIs**:
+     ```
+     https://api.filodelight.online/auth/google/callback
+     https://filodelight.online/auth/callback
+     ```
+   - Click "Create"
+   - **Save the Client ID and Client Secret** (you'll need these)
+
+5. **Add Test Users (Development)**:
+   - OAuth consent screen → Test users
+   - Add your email addresses for testing
+
+#### Configure Terraform Variables
 ```bash
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your:
-# - Google OAuth credentials
-# - Alert email addresses
+# Edit terraform.tfvars with:
+```
+
+**terraform.tfvars:**
+```hcl
+# Google OAuth Credentials (from step 4 above)
+google_client_id     = "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com"
+google_client_secret = "GOCSPX-aBcDeFgHiJkLmNoPqRsTuVwXyZ"
+
+# Alert Email Addresses
+security_alert_email = "your-email@example.com"
+system_alert_email   = "your-email@example.com"
 ```
 
 ### 3. Deploy Infrastructure
@@ -315,9 +495,13 @@ aws lambda update-function-code \
 - Verify CORS configuration
 
 **Google OAuth redirect error**
-- Update redirect URIs in Google Console
-- Check environment variables in Lambda
-- Verify API Gateway routes
+- Update redirect URIs in Google Console:
+  - `https://api.filodelight.online/auth/google/callback`
+  - `https://filodelight.online/auth/callback`
+- Check environment variables in Lambda (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+- Verify API Gateway routes are deployed
+- Ensure OAuth consent screen is published (not in draft)
+- Add test users if app is in testing mode
 
 **Rate limiting too strict**
 - Adjust limits in `api_gateway.tf`

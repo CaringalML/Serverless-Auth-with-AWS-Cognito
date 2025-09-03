@@ -73,7 +73,7 @@ const ProtectedRoute = ({ children }) => {
     // HttpOnly cookies need extra time to be available after page refresh
     const timer = setTimeout(() => {
       checkAuth();
-    }, 500); // Increased from 100ms to 500ms for page refresh reliability
+    }, 800); // Increased to 800ms for better page refresh reliability
     
     return () => clearTimeout(timer);
   }, [dispatch, isAuthenticated, hasCheckedAuth]);

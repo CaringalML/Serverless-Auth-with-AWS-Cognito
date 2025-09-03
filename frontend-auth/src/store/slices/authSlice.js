@@ -92,8 +92,8 @@ export const checkAuthAsync = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // On page refresh, httpOnly cookies need extra time to be available
-      // Add a small delay to ensure cookies are readable by the browser
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Add a delay to ensure cookies are readable by the browser
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const isAuth = await authService.isAuthenticated();
       

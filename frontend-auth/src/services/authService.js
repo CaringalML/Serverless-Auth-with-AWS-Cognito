@@ -35,7 +35,7 @@ class AuthService {
    * 
    * Architecture:
    * - Frontend: https://filodelight.online (CloudFront)
-   * - API: https://source.filodelight.online (API Gateway)
+   * - API: https://api.filodelight.online (API Gateway)
    * - Same root domain enables secure cookie sharing
    * 
    * Authentication Flow:

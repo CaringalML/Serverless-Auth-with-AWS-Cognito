@@ -59,6 +59,10 @@ locals {
       handler = "handler.lambda_handler"
       timeout = 10
     }
+    google_auth = {
+      handler = "handler.lambda_handler"
+      timeout = 15
+    }
   }
 }
 
@@ -149,6 +153,9 @@ resource "aws_lambda_function" "auth_functions" {
       CORS_ALLOW_CREDENTIALS = var.cors_allow_credentials
       PROJECT_NAME           = var.project_name
       ENVIRONMENT            = var.environment
+      COGNITO_DOMAIN         = aws_cognito_user_pool_domain.main.domain
+      API_DOMAIN             = "${var.api_subdomain}.${var.root_domain}"
+      FRONTEND_DOMAIN        = var.root_domain
     }
   }
 

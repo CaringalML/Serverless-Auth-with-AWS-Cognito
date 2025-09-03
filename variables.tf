@@ -26,7 +26,7 @@ variable "root_domain" {
 variable "api_subdomain" {
   description = "Subdomain for API Gateway"
   type        = string
-  default     = "source"
+  default     = "api"
 }
 
 # API Gateway Variables
@@ -142,14 +142,12 @@ variable "api_gateway_metrics_enabled" {
 variable "security_alert_email" {
   description = "Email address for security alerts"
   type        = string
-  default     = "lawrencecaringal5@gmail.com"
   sensitive   = true
 }
 
 variable "system_alert_email" {
   description = "Email address for system alerts"
   type        = string
-  default     = "lawrencecaringal5@gmail.com"
   sensitive   = true
 }
 
@@ -330,4 +328,17 @@ variable "cloudfront_function_runtime" {
     condition     = contains(["cloudfront-js-1.0"], var.cloudfront_function_runtime)
     error_message = "CloudFront function runtime must be 'cloudfront-js-1.0'."
   }
+}
+
+# Google OAuth Configuration Variables
+variable "google_client_id" {
+  description = "Google OAuth 2.0 Client ID for Cognito integration"
+  type        = string
+  sensitive   = true
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth 2.0 Client Secret for Cognito integration"
+  type        = string
+  sensitive   = true
 }

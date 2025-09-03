@@ -14,9 +14,9 @@
 
 ### Domain Architecture
 - **Frontend**: `https://your-domain.com` (CloudFront distribution)
-- **API**: `https://source.your-domain.com` (API Gateway custom domain) 
+- **API**: `https://api.your-domain.com` (API Gateway custom domain) 
 - **Same Root Domain**: Enables secure SameSite=Strict cookie sharing
-- **Example Implementation**: `filodelight.online` & `source.filodelight.online`
+- **Example Implementation**: `filodelight.online` & `api.filodelight.online`
 
 ## 🔒 HttpOnly Cookie Security Implementation
 
@@ -46,6 +46,7 @@
 ### Authentication Flow
 - ✅ User signup with email verification
 - ✅ Secure signin with httpOnly cookie tokens
+- ✅ **Google OAuth authentication** with secure httpOnly cookies
 - ✅ Password reset functionality with secure token handling
 - ✅ Automatic token refresh using refresh token from cookies
 - ✅ Secure logout with server-side cookie clearing
@@ -68,7 +69,9 @@
 
 ## 🚀 Setup Instructions
 
-### Prerequisites: Domain Setup (Required for HttpOnly Cookies)
+### Prerequisites
+
+#### 1. Domain Setup (Required for HttpOnly Cookies)
 
 ⚠️ **IMPORTANT**: This system requires a custom domain for httpOnly cookie security to work properly.
 
@@ -95,6 +98,98 @@ Purchase a domain from any domain registrar (GoDaddy, Namecheap, etc.):
 - **Check Status**: Use `nslookup your-domain.com` or online DNS checkers
 - **Required**: DO NOT proceed with deployment until DNS propagates
 
+#### 2. Google OAuth Setup (Required for Google Sign-In)
+
+⚠️ **IMPORTANT**: Google OAuth must be configured before deployment for Google Sign-In to work.
+
+##### Step 1: Access Google Cloud Console
+1. **Go to [Google Cloud Console](https://console.cloud.google.com)**
+2. **Sign in** with your Google account
+
+##### Step 2: Create or Select Project
+1. **Click the project dropdown** at the top of the page (next to "Google Cloud")
+2. **Click "NEW PROJECT"** or select an existing project
+3. **Enter project details**:
+   - Project name: `Serverless Auth App`
+   - Leave organization as default
+   - Click **"CREATE"**
+
+##### Step 3: Enable Required APIs
+1. **Navigate to "APIs & Services"** → **"Library"** (left sidebar)
+2. **Search for** `Google+ API`
+3. **Click on "Google+ API"** in results
+4. **Click "ENABLE"** button
+5. Wait for API activation (redirects to dashboard when complete)
+
+##### Step 4: Configure OAuth Consent Screen
+1. **Go to "APIs & Services"** → **"OAuth consent screen"** (left sidebar)
+2. **Select User Type**: Choose **"External"** → Click **"CREATE"**
+3. **App Information**:
+   - App name: `Serverless Auth App`
+   - User support email: Select your email from dropdown
+   - App logo: Skip (optional)
+4. **App Domain** (optional but recommended):
+   - Application home page: `https://filodelight.online`
+   - Privacy policy link: Skip (optional)
+   - Terms of service link: Skip (optional)
+5. **Authorized domains**:
+   - Click **"+ ADD DOMAIN"**
+   - Add: `filodelight.online`
+   - Click **"+ ADD DOMAIN"** again
+   - Add: `amazoncognito.com`
+6. **Developer contact**: Enter your email
+7. Click **"SAVE AND CONTINUE"**
+8. **Scopes**:
+   - Click **"ADD OR REMOVE SCOPES"**
+   - Select:
+     - ✅ `.../auth/userinfo.email`
+     - ✅ `.../auth/userinfo.profile`
+     - ✅ `openid`
+   - Click **"UPDATE"** → **"SAVE AND CONTINUE"**
+9. **Test users**: Skip (click **"SAVE AND CONTINUE"**)
+10. **Summary**: Review → Click **"BACK TO DASHBOARD"**
+
+##### Step 5: Create OAuth 2.0 Client ID
+1. **Go to "APIs & Services"** → **"Credentials"** (left sidebar)
+2. **Click "+ CREATE CREDENTIALS"** → Select **"OAuth client ID"**
+3. **Configure OAuth client**:
+   - Application type: **Web application**
+   - Name: `Serverless Auth Web Client`
+
+##### Step 6: Add Authorized Redirect URIs
+**⚠️ CRITICAL: Add these EXACT URIs (no trailing slashes)**
+
+Under **"Authorized redirect URIs"**, click **"+ ADD URI"** for each:
+
+**URI 1 - For AWS Cognito Integration**:
+```
+https://serverless-auth-dev-auth.auth.ap-southeast-2.amazoncognito.com/oauth2/idpresponse
+```
+
+**URI 2 - For Your API Domain**:
+```
+https://api.filodelight.online/auth/google/callback
+```
+
+**Note**: Leave "Authorized JavaScript origins" empty (not needed for server-side OAuth)
+
+4. Click **"CREATE"** button
+
+##### Step 7: Save Your Credentials
+**📋 Copy these immediately (you won't see the secret again!)**
+
+1. **Client ID**: 
+   ```
+   Example: 776447891061-xxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+   ```
+
+2. **Client Secret**:
+   ```
+   Example: GOCSPX-xxxxxxxxxxxxxxxxxxxx
+   ```
+
+3. Click **"OK"** to close the popup
+
 ### 1. Deploy Infrastructure
 
 After DNS propagation is complete:
@@ -102,7 +197,7 @@ After DNS propagation is complete:
 ```bash
 # Update domain in variables.tf
 # root_domain = "your-purchased-domain.com" 
-# api_subdomain = "source"  # Creates source.your-domain.com
+# api_subdomain = "api"  # Creates api.your-domain.com
 
 # Initialize Terraform
 terraform init
@@ -114,30 +209,35 @@ terraform plan
 terraform apply
 ```
 
-### 2. Configure Custom Domain Variables
+### 2. Configure Terraform Variables
 
-Update `variables.tf` with your domain:
+Create `terraform.tfvars` with your sensitive credentials:
+
+```bash
+# Create the file (or copy from example)
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars` with **ONLY sensitive values**:
 
 ```hcl
-variable "root_domain" {
-  description = "Root domain for the application"
-  type        = string
-  default     = "your-domain.com"  # Change this to your purchased domain
-}
+# Google OAuth Credentials (from Step 7 above)
+google_client_id     = "YOUR-CLIENT-ID.apps.googleusercontent.com"
+google_client_secret = "YOUR-CLIENT-SECRET"
 
-variable "api_subdomain" {
-  description = "Subdomain for API Gateway" 
-  type        = string
-  default     = "source"  # Creates source.your-domain.com
-}
+# Alert Email Addresses
+security_alert_email = "your-email@example.com"
+system_alert_email   = "your-email@example.com"
 ```
+
+**Note**: Domain and other non-sensitive configs are already set in `variables.tf`
 
 ### 3. Update Frontend Configuration
 
 Update the API URL in `frontend-auth/.env` with your domain:
 
 ```env
-REACT_APP_API_URL=https://source.your-domain.com
+REACT_APP_API_URL=https://api.your-domain.com
 ```
 
 ### 4. Build and Deploy Frontend
@@ -240,6 +340,8 @@ access_token = extract_token_from_cookies(cookies)
 ### Authentication Endpoints
 - `POST /auth/signup` - Register with email verification
 - `POST /auth/signin` - Secure login with httpOnly cookie creation  
+- `GET /auth/google` - **Initiate Google OAuth flow**
+- `GET /auth/google/callback` - **Handle Google OAuth callback**
 - `POST /auth/verify` - Email verification
 - `POST /auth/forgot-password` - Password reset request
 - `POST /auth/reset-password` - Secure password reset
@@ -262,7 +364,7 @@ CORS_ALLOW_ORIGIN=https://filodelight.online
 
 ### Frontend
 ```env
-REACT_APP_API_URL=https://source.filodelight.online
+REACT_APP_API_URL=https://api.filodelight.online
 ```
 
 ## 🚀 Production Deployment
@@ -277,7 +379,7 @@ REACT_APP_API_URL=https://source.filodelight.online
 
 ### Deployed URLs
 - **Application**: https://filodelight.online
-- **API**: https://source.filodelight.online
+- **API**: https://api.filodelight.online
 - **Status**: ✅ Live and operational
 
 ## 🔍 Security Benefits
@@ -332,9 +434,60 @@ terraform apply
 ### Testing Authentication
 1. **Sign Up**: Create account with email verification
 2. **Sign In**: Verify httpOnly cookies are set (DevTools → Application → Cookies)
-3. **Page Refresh**: Confirm authentication persists
-4. **Logout**: Verify cookies are cleared
-5. **Expired Tokens**: Test automatic refresh functionality
+3. **Google Sign-In**: Test OAuth flow with Google account
+4. **Page Refresh**: Confirm authentication persists
+5. **Logout**: Verify cookies are cleared
+6. **Expired Tokens**: Test automatic refresh functionality
+
+## 🔧 Troubleshooting
+
+### Google OAuth Issues
+
+#### "Error 400: redirect_uri_mismatch"
+**Problem**: The redirect URI doesn't match what's configured in Google Console
+
+**Solution**:
+1. Check URIs in Google Console match EXACTLY (no trailing slashes)
+2. Verify both URIs are added:
+   - `https://serverless-auth-dev-auth.auth.ap-southeast-2.amazoncognito.com/oauth2/idpresponse`
+   - `https://api.filodelight.online/auth/google/callback`
+3. Wait 5-10 minutes for Google changes to propagate
+
+#### "Google Sign-In button doesn't work"
+**Problem**: Clicking the button does nothing or shows error
+
+**Solution**:
+1. Check browser console for errors
+2. Verify API URL in `.env` is correct: `https://api.filodelight.online`
+3. Rebuild frontend after changes: `npm run build`
+4. Clear browser cache and cookies
+
+#### "Invalid Client" error from Google
+**Problem**: Google OAuth credentials are incorrect
+
+**Solution**:
+1. Verify `terraform.tfvars` has correct Client ID and Secret
+2. Run `terraform apply` to update infrastructure
+3. Check credentials match exactly (no extra spaces)
+
+#### "User not found after Google Sign-In"
+**Problem**: Google user not synced with Cognito
+
+**Solution**:
+1. First Google sign-in creates new Cognito user automatically
+2. Check Cognito User Pool in AWS Console for the user
+3. Verify Google identity provider is configured in Cognito
+
+### Domain/Cookie Issues
+
+#### Cookies not being set
+**Problem**: Authentication works but cookies aren't visible
+
+**Solution**:
+1. Check you're using HTTPS (not HTTP)
+2. Verify domain configuration in Terraform
+3. Check API Gateway custom domain is active
+4. Cookies are httpOnly - they won't show in JavaScript console
 
 ## 🔒 Security Compliance
 

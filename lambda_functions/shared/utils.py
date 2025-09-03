@@ -40,7 +40,7 @@ def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True
     
     ARCHITECTURE:
     Frontend domain: filodelight.online 
-    API domain: source.filodelight.online
+    API domain: api.filodelight.online
     Same root domain enables secure cookie sharing with Strict policy
     
     Args:

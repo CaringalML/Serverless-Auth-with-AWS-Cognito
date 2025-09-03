@@ -30,7 +30,7 @@ import { checkAuthAsync } from '../store/slices/authSlice';
  * 
  * DOMAINS:
  * - Frontend: https://filodelight.online (CloudFront)
- * - API: https://source.filodelight.online (API Gateway)
+ * - API: https://api.filodelight.online (API Gateway)
  * - Same root domain enables secure cookie sharing
  * 
  * @param {React.ReactNode} children - Protected components to render

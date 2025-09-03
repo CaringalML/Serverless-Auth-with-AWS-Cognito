@@ -79,6 +79,56 @@ locals {
   }
 }
 
+# Google OAuth endpoints require special handling (multiple methods)
+resource "aws_api_gateway_resource" "google" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.auth.id
+  path_part   = "google"
+}
+
+resource "aws_api_gateway_resource" "google_callback" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.google.id
+  path_part   = "callback"
+}
+
+# GET /auth/google - Initiate Google OAuth
+resource "aws_api_gateway_method" "google_login" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.google.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# GET /auth/google/callback - Handle OAuth callback
+resource "aws_api_gateway_method" "google_callback" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.google_callback.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# Lambda integrations for Google OAuth
+resource "aws_api_gateway_integration" "google_login" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.google.id
+  http_method = aws_api_gateway_method.google_login.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.auth_functions["google_auth"].invoke_arn
+}
+
+resource "aws_api_gateway_integration" "google_callback" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.google_callback.id
+  http_method = aws_api_gateway_method.google_callback.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.auth_functions["google_auth"].invoke_arn
+}
+
 resource "aws_api_gateway_resource" "endpoints" {
   for_each = local.api_endpoints
 

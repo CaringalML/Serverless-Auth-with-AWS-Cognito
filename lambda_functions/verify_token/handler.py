@@ -28,7 +28,7 @@ def lambda_handler(event, context):
     
     DOMAINS:
     - Request from: filodelight.online (frontend)
-    - Validated by: source.filodelight.online (API)
+    - Validated by: api.filodelight.online (API)
     - Same root domain enables SameSite=Strict cookie sharing
     """
     try:

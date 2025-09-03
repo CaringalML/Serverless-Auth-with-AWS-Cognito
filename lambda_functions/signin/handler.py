@@ -64,10 +64,13 @@ def lambda_handler(event, context):
             # Decode ID token to get user info
             user_info = decode_token_payload(id_token)
             
-            # Create httpOnly cookies for tokens with strict security
+            # SECURE HTTPONLY COOKIES: Maximum security against XSS and CSRF
+            # - HttpOnly: Prevents JavaScript access (XSS protection)
+            # - Secure: HTTPS only transmission 
+            # - SameSite=Strict: Same-domain only (CSRF protection)
             cookies = [
                 create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
-                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True),
+                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True), 
                 create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # 30 days
             ]
             

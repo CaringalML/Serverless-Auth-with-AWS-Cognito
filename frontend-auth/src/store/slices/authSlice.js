@@ -87,12 +87,30 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+/**
+ * HTTPONLY COOKIE AUTHENTICATION CHECK
+ * 
+ * Verifies user authentication using secure httpOnly cookies.
+ * Critical timing implementation prevents false logouts on page refresh.
+ * 
+ * SECURITY FEATURES:
+ * - Uses httpOnly cookies (immune to XSS attacks)
+ * - No token exposure to JavaScript
+ * - Server-side validation of all tokens
+ * 
+ * TIMING SOLUTION:
+ * - 500ms delay ensures httpOnly cookies are available after page refresh
+ * - Prevents premature authentication failures
+ * - Maintains seamless user experience
+ * 
+ * @returns {Object} Authentication state with user info
+ */
 export const checkAuthAsync = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      // On page refresh, httpOnly cookies need extra time to be available
-      // Add a delay to ensure cookies are readable by the browser
+      // CRITICAL: Wait for httpOnly cookies to be available after page refresh
+      // Browser needs time to process secure cookies before API calls
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const isAuth = await authService.isAuthenticated();

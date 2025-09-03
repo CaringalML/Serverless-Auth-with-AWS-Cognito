@@ -29,15 +29,30 @@ def create_response(status_code, body, cookies=None):
 
 def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True, same_site='Strict'):
     """
-    Create a cookie string with security settings
+    Create secure httpOnly cookie with enterprise-grade security settings
+    
+    SECURITY IMPLEMENTATION:
+    - HttpOnly: Prevents XSS attacks by blocking JavaScript access to tokens
+    - Secure: Ensures cookies only transmitted over HTTPS connections
+    - SameSite=Strict: Maximum CSRF protection (same-domain requests only)
+    - Path=/: Cookie available to all routes on the domain
+    - Max-Age + Expires: Dual expiration for browser compatibility
+    
+    ARCHITECTURE:
+    Frontend domain: filodelight.online 
+    API domain: source.filodelight.online
+    Same root domain enables secure cookie sharing with Strict policy
     
     Args:
-        name: Cookie name
-        value: Cookie value
-        max_age_seconds: Cookie lifetime in seconds (default: 7 days for access token, 30 days for refresh)
-        http_only: Prevent JavaScript access (default: True)
-        secure: Only send over HTTPS (default: True)
-        same_site: CSRF protection (default: 'Strict' for same-domain security)
+        name: Cookie name (accessToken, idToken, refreshToken)
+        value: JWT token value from AWS Cognito
+        max_age_seconds: Cookie lifetime in seconds
+        http_only: Prevent JavaScript access (True for security)
+        secure: Only send over HTTPS (True for production)
+        same_site: CSRF protection ('Strict' for maximum security)
+    
+    Returns:
+        str: Formatted cookie string with security attributes
     """
     cookie_parts = [f"{name}={value}"]
     

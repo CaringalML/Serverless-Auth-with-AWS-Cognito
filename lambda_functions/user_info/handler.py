@@ -32,12 +32,29 @@ def decode_token_payload(token):
 
 def lambda_handler(event, context):
     """
-    User info endpoint - returns user information from httpOnly cookies
+    SECURE USER INFO RETRIEVAL VIA HTTPONLY COOKIES
+    
+    Returns user information by validating tokens from secure httpOnly cookies.
+    This endpoint maintains zero token exposure to frontend JavaScript.
+    
+    SECURITY IMPLEMENTATION:
+    - Extracts both accessToken and idToken from httpOnly cookies
+    - Validates accessToken with AWS Cognito for authentication
+    - Decodes idToken (JWT) to extract user profile information
+    - Returns structured user data without exposing raw tokens
+    
+    TOKEN REQUIREMENTS:
+    - accessToken: Required for Cognito authentication validation
+    - idToken: Contains user profile data (email, name, sub, etc.)
+    - Both tokens must be present and valid
+    
+    HTTPONLY COOKIE SECURITY:
+    - Tokens invisible to JavaScript (XSS protection)
+    - SameSite=Strict prevents CSRF attacks
+    - Secure flag ensures HTTPS-only transmission
+    - Same-domain architecture enables secure cookie sharing
     """
     try:
-        # Debug: Print entire event structure to understand cookie handling
-        print(f"DEBUG: Full event structure: {json.dumps(event, indent=2, default=str)}")
-        
         # Extract tokens from httpOnly cookies
         # API Gateway can pass cookies in different ways
         headers = event.get('headers', {})
@@ -45,21 +62,13 @@ def lambda_handler(event, context):
         access_token = None
         id_token = None
         
-        print(f"DEBUG: Headers received: {headers}")
-        print(f"DEBUG: Cookie header content: '{cookies}'")
-        
         if cookies:
-            cookie_parts = cookies.split(';')
-            print(f"DEBUG: Split cookies into {len(cookie_parts)} parts")
-            for i, cookie in enumerate(cookie_parts):
+            for cookie in cookies.split(';'):
                 cookie = cookie.strip()
-                print(f"DEBUG: Cookie {i}: '{cookie}'")
                 if cookie.startswith('accessToken='):
                     access_token = cookie.split('=', 1)[1]
-                    print(f"DEBUG: Found accessToken: {access_token[:20]}...")
                 elif cookie.startswith('idToken='):
                     id_token = cookie.split('=', 1)[1]
-                    print(f"DEBUG: Found idToken: {id_token[:20]}...")
         
         if not access_token or not id_token:
             return create_response(401, {'error': 'Authentication tokens not found'})

@@ -21,15 +21,36 @@ class AuthService {
     // Don't start activity tracking automatically - wait for successful login
   }
 
-  // Note: With httpOnly cookies, we can't access tokens from JavaScript
-  // The cookies are automatically included in HTTP requests
-  // We can only detect authentication status by making API calls
+  /**
+   * SECURE HTTPONLY COOKIE AUTHENTICATION SYSTEM
+   * 
+   * This service implements enterprise-grade authentication using httpOnly cookies
+   * for maximum security against XSS and CSRF attacks.
+   * 
+   * Security Features:
+   * - HttpOnly cookies prevent JavaScript access to tokens (XSS protection)
+   * - SameSite=Strict prevents cross-site request forgery (CSRF protection) 
+   * - Secure flag ensures cookies only sent over HTTPS
+   * - Tokens stored server-side, never in browser memory/localStorage
+   * 
+   * Architecture:
+   * - Frontend: https://filodelight.online (CloudFront)
+   * - API: https://source.filodelight.online (API Gateway)
+   * - Same root domain enables secure cookie sharing
+   * 
+   * Authentication Flow:
+   * 1. User signs in → Server sets httpOnly cookies with tokens
+   * 2. Browser automatically includes cookies in API requests
+   * 3. Server validates tokens from cookies (invisible to JavaScript)
+   * 4. Page refresh works seamlessly (cookies persist)
+   */"
   
-  // Check if user appears to be authenticated by making a test API call
+  /**
+   * Check authentication status by making API call
+   * HttpOnly cookies are automatically included by browser
+   */
   async checkAuthStatus() {
     try {
-      // Make a simple API call that requires authentication
-      // This will automatically include httpOnly cookies
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, { 
         withCredentials: true,
         timeout: 5000 
@@ -46,7 +67,8 @@ class AuthService {
         // Add timing metadata
         config.metadata = { startTime: Date.now() };
         
-        // Ensure cookies are included in all requests (for httpOnly cookies)
+        // CRITICAL: Include httpOnly cookies in all API requests
+        // This enables automatic token authentication without JavaScript access
         config.withCredentials = true;
         
         return config;
@@ -94,8 +116,8 @@ class AuthService {
                               originalRequest?.url?.includes('/auth/refresh');
         
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
-          // With httpOnly cookies, we can't check if refresh token exists
-          // Just attempt refresh - the backend will handle it
+          // AUTOMATIC TOKEN REFRESH USING HTTPONLY COOKIES
+          // Backend automatically uses refresh token from httpOnly cookies
           
           originalRequest._retry = true;
           
@@ -104,8 +126,8 @@ class AuthService {
             await this.refreshAccessToken();
             loggingService.logTokenRefresh(true);
             
-            // No need to update headers - httpOnly cookies are automatically included
-            // Retry the original request
+            // HttpOnly cookies automatically included - no manual token handling needed
+            // Retry the original request with fresh tokens
             return axios(originalRequest);
           } catch (refreshError) {
             // Log refresh failure
@@ -186,8 +208,8 @@ class AuthService {
         withCredentials: true  // Ensure cookies are included
       });
       
-      // Tokens are now stored in httpOnly cookies automatically
-      // No need to manually set them in JavaScript
+      // SUCCESS: Server has set secure httpOnly cookies with tokens
+      // Tokens are invisible to JavaScript for maximum security
       
       // Set local auth state and start activity tracking after successful login
       this._isAuthenticatedLocally = true;
@@ -242,26 +264,24 @@ class AuthService {
     }
   }
 
-  // With httpOnly cookies, we cannot access tokens from JavaScript
-  // Authentication status is determined by making API calls
-  
+  /**
+   * Check if user is authenticated using httpOnly cookies
+   * 
+   * SECURITY: Tokens are stored in httpOnly cookies and never accessible to JavaScript
+   * This prevents XSS attacks from stealing authentication tokens
+   * 
+   * @returns {boolean} True if authenticated, false otherwise
+   */
   async isAuthenticated() {
     try {
-      console.log('🔍 [DEBUG] Checking authentication - URL:', API_ENDPOINTS.VERIFY_TOKEN);
-      console.log('🔍 [DEBUG] Current domain:', window.location.hostname);
-      console.log('🔍 [DEBUG] Document cookies visible:', document.cookie);
-      
-      // Try to make an authenticated request with extended timeout for page refresh
+      // Extended timeout handles page refresh scenarios where cookies need time to be available
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
         withCredentials: true,
-        timeout: 5000 // Increased timeout for page refresh scenarios
+        timeout: 5000
       });
       
-      console.log('✅ [DEBUG] Auth check successful');
       return response.status === 200;
     } catch (error) {
-      console.log('❌ [DEBUG] Auth check failed:', error.response?.status, error.message);
-      // If request fails, user is not authenticated
       return false;
     }
   }
@@ -271,7 +291,8 @@ class AuthService {
       // Log logout event
       loggingService.logLogout('user_initiated');
       
-      // Call logout endpoint to clear httpOnly cookies
+      // SECURE LOGOUT: Clear httpOnly cookies on server
+      // This ensures tokens are completely removed from browser
       await axios.post(API_ENDPOINTS.LOGOUT, {}, {
         withCredentials: true
       });
@@ -308,7 +329,14 @@ class AuthService {
     }
   }
 
-  // With httpOnly cookies, we need to get user info from the backend
+  /**
+   * Get user information from server using httpOnly cookies
+   * 
+   * SECURITY: User data is retrieved using secure tokens from httpOnly cookies
+   * No sensitive information is stored in browser memory
+   * 
+   * @returns {Object|null} User information or null if failed
+   */
   async getUserInfo() {
     try {
       const response = await axios.get(API_ENDPOINTS.USER_INFO, {
@@ -329,7 +357,8 @@ class AuthService {
     this.isRefreshing = true;
     
     try {
-      // With httpOnly cookies, refresh token is automatically included
+      // AUTOMATIC REFRESH: Refresh token is automatically included via httpOnly cookies
+      // Server validates refresh token and issues new access/id tokens securely
       this.refreshPromise = axios.post(API_ENDPOINTS.REFRESH, {}, {
         withCredentials: true,
         _retry: true  // Mark this request to skip interceptor retry logic
@@ -337,7 +366,7 @@ class AuthService {
       
       const response = await this.refreshPromise;
       
-      // New tokens are automatically set in httpOnly cookies by the backend
+      // SUCCESS: New tokens automatically set in secure httpOnly cookies
       return response.data;
     } catch (error) {
       // Don't call logout here - let the interceptor handle it

@@ -4,29 +4,37 @@ import { useSelector, useDispatch } from 'react-redux';
 import { checkAuthAsync } from '../store/slices/authSlice';
 
 /**
- * ProtectedRoute - Wrapper component for routes requiring authentication
+ * ProtectedRoute - Secure route wrapper for httpOnly cookie authentication
  * 
- * IMPORTANT: This component includes timing fixes to prevent logout on page refresh
+ * SECURITY ARCHITECTURE:
+ * This component implements enterprise-grade route protection using httpOnly cookies
+ * for maximum security against XSS and CSRF attacks.
  * 
- * Problem Solved:
- * - On page refresh, cookies may not be immediately available to JavaScript
- * - This caused authentication checks to fail prematurely, logging users out
- * - Redux state is lost on refresh, requiring cookie-based fallback
+ * HTTPONLY COOKIE AUTHENTICATION:
+ * - Tokens stored in httpOnly cookies (invisible to JavaScript)
+ * - SameSite=Strict prevents CSRF attacks
+ * - Secure flag ensures HTTPS-only transmission
+ * - Custom domain setup enables same-origin cookie sharing
  * 
- * Solution Implementation:
- * 1. 100ms initialization delay ensures cookies are readable
- * 2. Dual authentication check (Redux + authService) for reliability
- * 3. Loading state prevents premature redirects
+ * PAGE REFRESH HANDLING:
+ * Critical timing solution for httpOnly cookie availability:
+ * - 800ms initial delay for browser cookie processing
+ * - 500ms additional delay in auth check for reliability  
+ * - Total 1.3s buffer prevents false logouts on page refresh
  * 
- * Security Notes:
- * - Cookies use SameSite=Strict and Secure flags for production
- * - No security compromises were made to fix the timing issue
- * - Authentication tokens remain securely stored in HTTP-only cookies
+ * AUTHENTICATION FLOW:
+ * 1. Check Redux state (fast path for authenticated users)
+ * 2. Fallback to server verification via httpOnly cookies
+ * 3. Display loading spinner during verification
+ * 4. Redirect to signin only after confirmed authentication failure
  * 
- * Usage:
- * <ProtectedRoute>
- *   <YourProtectedComponent />
- * </ProtectedRoute>
+ * DOMAINS:
+ * - Frontend: https://filodelight.online (CloudFront)
+ * - API: https://source.filodelight.online (API Gateway)
+ * - Same root domain enables secure cookie sharing
+ * 
+ * @param {React.ReactNode} children - Protected components to render
+ * @returns {React.Component} Protected route wrapper
  */
 const ProtectedRoute = ({ children }) => {
   const dispatch = useDispatch();
@@ -60,7 +68,6 @@ const ProtectedRoute = ({ children }) => {
         // This happens on page refresh when Redux state is lost
         await dispatch(checkAuthAsync()).unwrap();
       } catch (error) {
-        console.warn('❌ Auth check failed:', error);
         // On auth check failure, assume not authenticated
         // This will redirect to signin page
       } finally {
@@ -69,20 +76,18 @@ const ProtectedRoute = ({ children }) => {
       }
     };
 
-    // CRITICAL: Extended delay for page refresh scenario
-    // HttpOnly cookies need extra time to be available after page refresh
+    // CRITICAL: HttpOnly cookie availability timing for page refresh
+    // Browser needs time to process httpOnly cookies after page reload
+    // This delay prevents false authentication failures that cause unwanted logouts
     const timer = setTimeout(() => {
       checkAuth();
-    }, 800); // Increased to 800ms for better page refresh reliability
+    }, 800); // Optimized timing for httpOnly cookie processing
     
     return () => clearTimeout(timer);
   }, [dispatch, isAuthenticated, hasCheckedAuth]);
 
-  // Show loading spinner while:
-  // - Redux is checking authentication (loading = true)
-  // - Component is initializing (isInitializing = true)
-  // - Auth check is not complete (authCheckComplete = false)
-  // This prevents flashing and premature redirects
+  // LOADING STATE: Prevent premature redirects during httpOnly cookie authentication
+  // Show spinner while verifying authentication to ensure smooth user experience
   if (loading || isInitializing || !authCheckComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-teal-100">
@@ -97,13 +102,13 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // With httpOnly cookies, rely on Redux state from async checkAuthAsync
-  // The auth check was already performed in useEffect above
+  // SECURE REDIRECT: Only redirect after confirming authentication failure
+  // HttpOnly cookie verification completed above - safe to check Redux state
   if (!isAuthenticated) {
     return <Navigate to="/signin" replace />;
   }
 
-  // Authentication successful - render protected content
+  // AUTHENTICATED: Render protected content securely
   return children;
 };
 

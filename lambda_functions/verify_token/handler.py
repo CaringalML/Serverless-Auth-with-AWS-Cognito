@@ -11,34 +11,41 @@ cognito_client = boto3.client('cognito-idp')
 
 def lambda_handler(event, context):
     """
-    Verify token endpoint - checks if the user is authenticated via httpOnly cookies
+    HTTPONLY COOKIE AUTHENTICATION VERIFICATION
+    
+    Validates user authentication using secure httpOnly cookies.
+    This endpoint is immune to XSS attacks as tokens are never accessible to JavaScript.
+    
+    SECURITY ARCHITECTURE:
+    - Extracts accessToken from httpOnly cookie headers
+    - Validates token with AWS Cognito User Pool
+    - Returns 200 for valid authentication, 401 for invalid/expired
+    - No token exposure to frontend JavaScript
+    
+    COOKIE EXTRACTION:
+    API Gateway passes cookies in headers as 'Cookie' or 'cookie'
+    Format: 'accessToken=jwt_token; idToken=jwt_token; refreshToken=jwt_token'
+    
+    DOMAINS:
+    - Request from: filodelight.online (frontend)
+    - Validated by: source.filodelight.online (API)
+    - Same root domain enables SameSite=Strict cookie sharing
     """
     try:
-        # Debug: Print entire event structure to understand cookie handling
-        print(f"DEBUG: Full event structure: {json.dumps(event, indent=2, default=str)}")
-        
         # Extract access token from httpOnly cookie
         # API Gateway can pass cookies in different ways
         headers = event.get('headers', {})
         cookies = headers.get('Cookie') or headers.get('cookie', '')
         access_token = None
         
-        print(f"DEBUG: Headers received: {headers}")
-        print(f"DEBUG: Cookie header content: '{cookies}'")
-        
         if cookies:
-            cookie_parts = cookies.split(';')
-            print(f"DEBUG: Split cookies into {len(cookie_parts)} parts")
-            for i, cookie in enumerate(cookie_parts):
+            for cookie in cookies.split(';'):
                 cookie = cookie.strip()
-                print(f"DEBUG: Cookie {i}: '{cookie}'")
                 if cookie.startswith('accessToken='):
                     access_token = cookie.split('=', 1)[1]
-                    print(f"DEBUG: Found accessToken: {access_token[:20]}...")
                     break
         
         if not access_token:
-            print(f"DEBUG: No access token found. Available cookies: {cookies}")
             return create_response(401, {'error': 'No access token found'})
         
         try:

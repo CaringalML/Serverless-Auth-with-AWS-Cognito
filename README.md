@@ -507,12 +507,17 @@ python -m pytest lambda_functions/tests/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🆘 Support & Contact
 
-- 📧 Email: support@yourdomain.com
-- 💬 Slack: [Join our community](https://slack.yourdomain.com)
-- 📖 Documentation: [Full docs](https://docs.yourdomain.com)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/Serverless-Auth-Cognito/issues)
+**Creator**: Martin Lawrence Caringal  
+**Email**: lawrencecaringal5@gmail.com  
+**GitHub**: [CaringalML](https://github.com/CaringalML)  
+
+For questions, support, or collaboration:
+- 📧 Direct Email: lawrencecaringal5@gmail.com
+- 🐛 Issues: [GitHub Issues](https://github.com/CaringalML/Serverless-Auth-with-AWS-Cognito/issues)
+- 💼 LinkedIn: Connect for professional inquiries
+- ⭐ Star this repo if you find it helpful!
 
 ## 🎯 Roadmap
 
@@ -534,7 +539,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+**Created by Martin Lawrence Caringal**  
 **Built with ❤️ using AWS Serverless Architecture**
 
-*Last Updated: December 2024*
+*Author: Martin Lawrence Caringal (lawrencecaringal5@gmail.com)*  
+*Last Updated: September 2025*  
 *Security Grade: A+ (100/100)*

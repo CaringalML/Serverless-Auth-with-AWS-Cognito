@@ -85,6 +85,27 @@ output "deployment_commands" {
   }
 }
 
+# SSL Certificate Outputs
+output "cloudfront_certificate_arn" {
+  description = "ARN of the CloudFront SSL certificate (us-east-1)"
+  value       = aws_acm_certificate.cloudfront.arn
+}
+
+output "cloudfront_certificate_validation_arn" {
+  description = "ARN of the validated CloudFront SSL certificate"
+  value       = aws_acm_certificate_validation.cloudfront.certificate_arn
+}
+
+output "api_certificate_arn" {
+  description = "ARN of the API Gateway SSL certificate (regional)"
+  value       = aws_acm_certificate.api.arn
+}
+
+output "api_certificate_validation_arn" {
+  description = "ARN of the validated API Gateway SSL certificate"
+  value       = aws_acm_certificate_validation.api.certificate_arn
+}
+
 output "infrastructure_info" {
   description = "Summary of deployed infrastructure"
   value = {

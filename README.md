@@ -1,15 +1,61 @@
-# 🔐 Serverless Authentication System with AWS Cognito
+# 📚 Serverless Authentication System with AWS Cognito
+## *The Complete Implementation Guide*
 
 [![AWS](https://img.shields.io/badge/AWS-Serverless-orange)](https://aws.amazon.com)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-purple)](https://terraform.io)
 [![React](https://img.shields.io/badge/React-19.1-blue)](https://reactjs.org)
 [![Python](https://img.shields.io/badge/Python-3.12-green)](https://python.org)
 
-A production-ready serverless authentication system built on AWS, featuring **100% httpOnly cookie security**, comprehensive rate limiting, and Google OAuth integration.
+> A production-ready serverless authentication system built on AWS, featuring **100% httpOnly cookie security**, comprehensive rate limiting, and Google OAuth integration.
 
-## 🌟 Key Features
+---
 
-### Implemented Authentication Features
+## 📖 Table of Contents
+
+### **Part I: Overview & Architecture**
+- [**Chapter 1: Introduction & Features**](#chapter-1-introduction--features)
+- [**Chapter 2: System Architecture**](#chapter-2-system-architecture)
+- [**Chapter 3: Security Implementation**](#chapter-3-security-implementation)
+
+### **Part II: Prerequisites & Setup**
+- [**Chapter 4: Domain Prerequisites (CRITICAL)**](#chapter-4-domain-prerequisites-critical)
+- [**Chapter 5: Google OAuth Configuration**](#chapter-5-google-oauth-configuration)
+- [**Chapter 6: AWS Environment Setup**](#chapter-6-aws-environment-setup)
+
+### **Part III: Deployment Guide**
+- [**Chapter 7: Infrastructure Deployment**](#chapter-7-infrastructure-deployment)
+- [**Chapter 8: Frontend Deployment**](#chapter-8-frontend-deployment)
+- [**Chapter 9: Post-Deployment Verification**](#chapter-9-post-deployment-verification)
+
+### **Part IV: Configuration & Customization**
+- [**Chapter 10: Lambda Functions Reference**](#chapter-10-lambda-functions-reference)
+- [**Chapter 11: Security Configuration**](#chapter-11-security-configuration)
+- [**Chapter 12: Monitoring & Alerting**](#chapter-12-monitoring--alerting)
+
+### **Part V: Frontend Development**
+- [**Chapter 13: Frontend Stack & Components**](#chapter-13-frontend-stack--components)
+- [**Chapter 14: State Management**](#chapter-14-state-management)
+- [**Chapter 15: CI/CD Pipeline**](#chapter-15-cicd-pipeline)
+
+### **Part VI: Operations & Maintenance**
+- [**Chapter 16: Cost Analysis**](#chapter-16-cost-analysis)
+- [**Chapter 17: Common Operations**](#chapter-17-common-operations)
+- [**Chapter 18: Troubleshooting Guide**](#chapter-18-troubleshooting-guide)
+
+### **Part VII: Appendices**
+- [**Appendix A: Project Structure**](#appendix-a-project-structure)
+- [**Appendix B: Configuration Files**](#appendix-b-configuration-files)
+- [**Appendix C: Production Checklist**](#appendix-c-production-checklist)
+
+---
+
+# Part I: Overview & Architecture
+
+## Chapter 1: Introduction & Features
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [▶️ Next: System Architecture](#chapter-2-system-architecture)
+
+### 1.1 Implemented Authentication Features
 ✅ **User Registration** with email verification  
 ✅ **Secure Sign-in** with httpOnly cookies  
 ✅ **Google OAuth 2.0** integration  
@@ -19,7 +65,7 @@ A production-ready serverless authentication system built on AWS, featuring **10
 ✅ **Email Verification** with resend capability  
 ✅ **User Logout** with cookie clearing  
 
-### Security Implementation
+### 1.2 Security Implementation
 🔒 **HttpOnly Cookies** - Tokens never exposed to JavaScript  
 🛡️ **CSRF Protection** - SameSite=Strict cookies  
 🚦 **Rate Limiting** - Per-endpoint throttling  
@@ -27,7 +73,13 @@ A production-ready serverless authentication system built on AWS, featuring **10
 📊 **Security Monitoring** - CloudWatch dashboards & alarms  
 🔐 **Token Security** - Access (1hr), Refresh (30 days)  
 
-## 🏗️ Infrastructure Architecture
+---
+
+## Chapter 2: System Architecture
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Introduction](#chapter-1-introduction--features) | [▶️ Next: Security Implementation](#chapter-3-security-implementation)
+
+### 2.1 Infrastructure Overview
 
 ```mermaid
 graph TB
@@ -175,31 +227,137 @@ graph TB
     class IAM,WAF security
 ```
 
-### Domain Configuration
+### 2.2 Domain Configuration
 - **Frontend**: `https://filodelight.online` (CloudFront → S3)
 - **API**: `https://api.filodelight.online` (Route53 → API Gateway)
 - **Region**: `ap-southeast-2` (Sydney)
 - **SSL**: AWS Certificate Manager (ACM)
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
-- AWS Account with programmatic access
-- Terraform >= 1.5
-- Node.js >= 18
-- Python >= 3.12 (for local Lambda development)
-- Google Cloud Console project
-- Domain registered in Route53 (or external DNS provider)
+## Chapter 3: Security Implementation
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/CaringalML/Serverless-Auth-with-AWS-Cognito.git
-cd Serverless-Auth-with-AWS-Cognito
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: System Architecture](#chapter-2-system-architecture) | [▶️ Next: Domain Prerequisites](#chapter-4-domain-prerequisites-critical)
+
+### 3.1 Rate Limiting Configuration
+
+| Endpoint | Rate | Burst | Purpose |
+|----------|------|-------|---------|
+| /auth/signin | 5/sec | 10 | Prevent brute force |
+| /auth/signup | 2/sec | 5 | Prevent bot registration |
+| /auth/forgot-password | 1/sec | 3 | Prevent email bombing |
+| /auth/verify | 3/sec | 6 | Prevent code guessing |
+| /auth/refresh | 10/sec | 20 | Token refresh |
+| /auth/google/* | 10/sec | 20 | OAuth flow |
+
+### 3.2 Cookie Security Configuration
+```javascript
+HttpOnly: true     // XSS Protection
+Secure: true       // HTTPS Only
+SameSite: Strict   // CSRF Protection
+Domain: .filodelight.online  // Shared across subdomains
 ```
 
-### 2. Set Up Google OAuth (Required for Google Sign-In)
+### 3.3 Security Grade: A+
+✅ **Perfect httpOnly cookie implementation** for all tokens  
+✅ **Zero localStorage/sessionStorage usage** anywhere in the codebase  
+✅ **Memory-only error state management** via Redux  
+✅ **Complete XSS immunity** - no client-side storage of sensitive data
 
-#### Google Cloud Console Configuration
+---
+
+# Part II: Prerequisites & Setup
+
+## Chapter 4: Domain Prerequisites (CRITICAL)
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Security Implementation](#chapter-3-security-implementation) | [▶️ Next: Google OAuth Configuration](#chapter-5-google-oauth-configuration)
+
+### ⚠️ **CRITICAL: Complete Domain Setup BEFORE Running Terraform!**
+
+**⚠️ You MUST complete domain setup BEFORE running Terraform!**
+
+### 4.1 Step 1: Purchase Your Domain
+- Buy a domain from any registrar (GoDaddy, Namecheap, Google Domains, etc.)
+- Example: `yourawesome-domain.com`
+
+### 4.2 Step 2: Create Route53 Hosted Zone in AWS
+```bash
+# Create hosted zone in AWS Route53
+aws route53 create-hosted-zone \
+  --name yourawesome-domain.com \
+  --caller-reference "$(date +%s)" \
+  --hosted-zone-config Comment="Hosted zone for Serverless Auth"
+```
+
+**Or via AWS Console:**
+1. Route53 → Hosted Zones → Create Hosted Zone
+2. Enter your domain: `yourawesome-domain.com`
+3. Type: Public Hosted Zone → Create
+
+### 4.3 Step 3: Get Route53 Nameservers
+```bash
+# Get your nameservers
+aws route53 get-hosted-zone --id /hostedzone/YOUR_ZONE_ID
+```
+**Or via Console:** Route53 → Hosted Zones → Click your domain → Copy 4 nameservers
+
+### 4.4 Step 4: Update Nameservers in Your Domain Registrar
+
+#### **🎯 GoDaddy Users (Special Instructions):**
+1. **Login to GoDaddy Domain Manager**
+2. **Find your domain → Click DNS**
+3. **Nameservers section → Change to Custom**
+4. **Delete existing nameservers**
+5. **Add all 4 Route53 nameservers:**
+   ```
+   ns-123.awsdns-12.com
+   ns-456.awsdns-45.org
+   ns-789.awsdns-78.net  
+   ns-012.awsdns-01.co.uk
+   ```
+6. **⚠️ CRITICAL GoDaddy Step:**
+   - **Click "Save"**
+   - **REFRESH THE ENTIRE GODADDY PAGE** (F5 or Ctrl+R)
+   - **Verify nameservers are showing correctly**
+
+### 4.5 Step 5: Wait for DNS Propagation
+- **Minimum: 1.5 hours**
+- **Recommended: 2-4 hours**
+- **Maximum: 24-48 hours**
+
+**Verify Propagation:**
+```bash
+# Check if propagated
+nslookup -type=ns yourawesome-domain.com
+# Should show Route53 nameservers
+```
+
+**Online Checker:** https://www.whatsmydns.net/
+- Enter your domain, select "NS" record
+- Look for green checkmarks worldwide
+
+### 4.6 Step 6: Update Terraform Variables
+Edit `variables.tf` or create `terraform.tfvars`:
+```hcl
+# terraform.tfvars
+root_domain = "yourawesome-domain.com"  # Replace with YOUR domain
+api_subdomain = "api"
+```
+
+**⚠️ DNS Issues? Common Solutions:**
+- **GoDaddy not updating?** Hard refresh page (Ctrl+Shift+R), try incognito mode
+- **Still old nameservers?** Wait longer, DNS can take 48 hours
+- **Certificate fails?** Ensure DNS fully propagated before Terraform
+
+---
+
+## Chapter 5: Google OAuth Configuration
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Domain Prerequisites](#chapter-4-domain-prerequisites-critical) | [▶️ Next: AWS Environment Setup](#chapter-6-aws-environment-setup)
+
+### 5.1 Google Cloud Console Configuration
+
+#### 5.1.1 Set Up Google Cloud Project
 
 1. **Go to Google Cloud Console**:
    - Navigate to [Google Cloud Console](https://console.cloud.google.com)
@@ -213,6 +371,8 @@ cd Serverless-Auth-with-AWS-Cognito
    ```
    Or via Console: APIs & Services → Library → Search "Google+ API" → Enable
 
+#### 5.1.2 Configure OAuth Consent Screen
+
 3. **Configure OAuth Consent Screen**:
    - Go to: APIs & Services → OAuth consent screen
    - Choose "External" user type
@@ -225,6 +385,8 @@ cd Serverless-Auth-with-AWS-Cognito
      - `../auth/userinfo.profile`
      - `openid`
 
+#### 5.1.3 Create OAuth Credentials
+
 4. **Create OAuth 2.0 Client ID**:
    - Go to: APIs & Services → Credentials
    - Click "Create Credentials" → "OAuth 2.0 Client ID"
@@ -232,13 +394,13 @@ cd Serverless-Auth-with-AWS-Cognito
    - Name: "Serverless Auth Web Client"
    - **Authorized JavaScript origins**:
      ```
-     https://filodelight.online
-     https://api.filodelight.online
+     https://yourawesome-domain.com
+     https://api.yourawesome-domain.com
      ```
    - **Authorized redirect URIs**:
      ```
-     https://api.filodelight.online/auth/google/callback
-     https://filodelight.online/auth/callback
+     https://api.yourawesome-domain.com/auth/google/callback
+     https://yourawesome-domain.com/auth/callback
      ```
    - Click "Create"
    - **Save the Client ID and Client Secret** (you'll need these)
@@ -247,7 +409,7 @@ cd Serverless-Auth-with-AWS-Cognito
    - OAuth consent screen → Test users
    - Add your email addresses for testing
 
-#### Configure Terraform Variables
+### 5.2 Configure Terraform Variables
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars with:
@@ -262,29 +424,147 @@ google_client_secret = "GOCSPX-aBcDeFgHiJkLmNoPqRsTuVwXyZ"
 # Alert Email Addresses
 security_alert_email = "your-email@example.com"
 system_alert_email   = "your-email@example.com"
+
+# Your Domain (from Chapter 4)
+root_domain = "yourawesome-domain.com"
 ```
 
-### 3. Deploy Infrastructure
+---
+
+## Chapter 6: AWS Environment Setup
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Google OAuth Configuration](#chapter-5-google-oauth-configuration) | [▶️ Next: Infrastructure Deployment](#chapter-7-infrastructure-deployment)
+
+### 6.1 Prerequisites
+- AWS Account with programmatic access
+- Terraform >= 1.5
+- Node.js >= 18
+- Python >= 3.12 (for local Lambda development)
+
+### 6.2 Clone Repository
+```bash
+git clone https://github.com/CaringalML/Serverless-Auth-with-AWS-Cognito.git
+cd Serverless-Auth-with-AWS-Cognito
+```
+
+### 6.3 AWS Credentials Setup
+```bash
+# Configure AWS CLI
+aws configure
+
+# Or set environment variables
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="ap-southeast-2"
+```
+
+---
+
+# Part III: Deployment Guide
+
+## Chapter 7: Infrastructure Deployment
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: AWS Environment Setup](#chapter-6-aws-environment-setup) | [▶️ Next: Frontend Deployment](#chapter-8-frontend-deployment)
+
+### 7.1 Terraform Initialization
 ```bash
 terraform init
+```
+
+### 7.2 Plan Review
+```bash
 terraform plan
+```
+
+### 7.3 Deploy Infrastructure
+```bash
 terraform apply
 ```
 
-### 4. Deploy Frontend
+**Expected Resources Created:**
+- 12 Lambda Functions
+- API Gateway with Rate Limiting
+- Cognito User Pool
+- DynamoDB Table
+- CloudFront Distribution
+- S3 Bucket
+- Route53 DNS Records
+- ACM SSL Certificates
+- CloudWatch Dashboards
+- SNS Alert Topics
+
+---
+
+## Chapter 8: Frontend Deployment
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Infrastructure Deployment](#chapter-7-infrastructure-deployment) | [▶️ Next: Post-Deployment Verification](#chapter-9-post-deployment-verification)
+
+### 8.1 Build React Application
 ```bash
 cd frontend-auth
 npm install
 npm run build
+```
+
+### 8.2 Deploy to S3
+```bash
+# Get bucket name from Terraform outputs
+terraform output s3_bucket_name
 
 # Upload to S3 (replace with your bucket)
-aws s3 sync build/ s3://serverless-auth-cognito-frontend-2025/react-build --delete
+aws s3 sync build/ s3://your-bucket-name/react-build --delete
+```
 
-# Invalidate CloudFront
+### 8.3 Invalidate CloudFront Cache
+```bash
+# Get distribution ID from Terraform outputs
+terraform output cloudfront_distribution_id
+
+# Invalidate cache
 aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
 ```
 
-## 📦 Lambda Functions
+---
+
+## Chapter 9: Post-Deployment Verification
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Frontend Deployment](#chapter-8-frontend-deployment) | [▶️ Next: Lambda Functions Reference](#chapter-10-lambda-functions-reference)
+
+### 9.1 DNS Verification
+```bash
+# Check DNS resolution
+dig yourawesome-domain.com A
+dig api.yourawesome-domain.com A
+```
+
+### 9.2 SSL Certificate Verification
+```bash
+# Check SSL certificates
+curl -I https://yourawesome-domain.com
+curl -I https://api.yourawesome-domain.com
+```
+
+### 9.3 API Endpoint Testing
+```bash
+# Test API endpoints
+curl https://api.yourawesome-domain.com/auth/verify-token
+```
+
+### 9.4 Frontend Application Testing
+1. Visit `https://yourawesome-domain.com`
+2. Test user registration
+3. Test Google OAuth login
+4. Verify dashboard access
+
+---
+
+# Part IV: Configuration & Customization
+
+## Chapter 10: Lambda Functions Reference
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Post-Deployment Verification](#chapter-9-post-deployment-verification) | [▶️ Next: Security Configuration](#chapter-11-security-configuration)
+
+### 10.1 Function Overview
 
 | Function | Purpose | Trigger |
 |----------|---------|---------|
@@ -301,41 +581,110 @@ aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
 | `resend_verification` | Resend verification email | POST /auth/resend-verification |
 | `custom_message` | Customize Cognito emails | Cognito trigger |
 
-## 🔒 Security Features
+### 10.2 Function Details
 
-### Rate Limiting (Implemented)
-| Endpoint | Rate | Burst | Purpose |
-|----------|------|-------|---------|
-| /auth/signin | 5/sec | 10 | Prevent brute force |
-| /auth/signup | 2/sec | 5 | Prevent bot registration |
-| /auth/forgot-password | 1/sec | 3 | Prevent email bombing |
-| /auth/verify | 3/sec | 6 | Prevent code guessing |
-| /auth/refresh | 10/sec | 20 | Token refresh |
-| /auth/google/* | 10/sec | 20 | OAuth flow |
+#### 10.2.1 Authentication Functions
+- **signin**: Handles user login with httpOnly cookie security
+- **google_auth**: Manages Google OAuth 2.0 flow with secure token handling
+- **refresh**: Automatic token refresh using httpOnly cookies
 
-### Cookie Configuration
-```javascript
-HttpOnly: true     // XSS Protection
-Secure: true       // HTTPS Only
-SameSite: Strict   // CSRF Protection
-Domain: .filodelight.online  // Shared across subdomains
+#### 10.2.2 User Management Functions
+- **signup**: User registration with email verification
+- **verify**: Email verification with code validation
+- **user_info**: Secure user profile retrieval
+
+#### 10.2.3 Password Management Functions
+- **forgot_password**: Initiates password reset flow
+- **reset_password**: Completes password reset with code validation
+
+---
+
+## Chapter 11: Security Configuration
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Lambda Functions Reference](#chapter-10-lambda-functions-reference) | [▶️ Next: Monitoring & Alerting](#chapter-12-monitoring--alerting)
+
+### 11.1 Rate Limiting (Detailed)
+
+#### 11.1.1 Authentication Endpoints
+```terraform
+# Sign In endpoint - Most restrictive (prevent brute force)
+throttling_rate_limit  = 5    # 5 requests per second max
+throttling_burst_limit = 10   # Allow brief burst of 10 requests
+
+# Sign Up endpoint - Prevent automated account creation
+throttling_rate_limit  = 2    # 2 requests per second max
+throttling_burst_limit = 5    # Allow brief burst of 5 requests
 ```
 
-## 📊 Monitoring & Alerting
+#### 11.1.2 Password Reset Endpoints
+```terraform
+# Forgot Password - Prevent email bombing
+throttling_rate_limit  = 1    # 1 request per second max
+throttling_burst_limit = 3    # Allow brief burst of 3 requests
 
-### CloudWatch Dashboards (3)
-1. **Security Overview** - Failed logins, suspicious activity
-2. **User Activity** - Signups, active users, page views
-3. **System Health** - Lambda performance, API errors
+# Reset Password - Prevent brute forcing reset codes
+throttling_rate_limit  = 3    # 3 requests per second max
+throttling_burst_limit = 6    # Allow brief burst of 6 requests
+```
 
-### SNS Alerts Configured
+### 11.2 Cookie Security Implementation
+```javascript
+// Maximum Security Configuration
+const cookieConfig = {
+  HttpOnly: true,           // Prevents XSS attacks
+  Secure: true,             // HTTPS only transmission
+  SameSite: 'Strict',       // CSRF protection
+  Domain: '.yourawesome-domain.com',  // Subdomain sharing
+  Path: '/',                // Available to all routes
+  MaxAge: 3600              // 1 hour for access tokens
+};
+```
+
+### 11.3 Token Management
+- **Access Token**: 1 hour validity
+- **Refresh Token**: 30 days validity
+- **ID Token**: 1 hour validity
+- **Storage**: 100% httpOnly cookies (zero JavaScript access)
+
+---
+
+## Chapter 12: Monitoring & Alerting
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Security Configuration](#chapter-11-security-configuration) | [▶️ Next: Frontend Stack & Components](#chapter-13-frontend-stack--components)
+
+### 12.1 CloudWatch Dashboards (3 Total)
+
+#### 12.1.1 Security Overview Dashboard
+- Failed login attempts by IP
+- Suspicious activity detection
+- Rate limiting violations
+- Authentication error patterns
+
+#### 12.1.2 User Activity Dashboard
+- Daily active users
+- New signups tracking
+- Page view analytics
+- Session duration metrics
+
+#### 12.1.3 System Health Dashboard
+- Lambda performance metrics
+- API Gateway response times
+- Error rate monitoring
+- Cold start tracking
+
+### 12.2 SNS Alert Configuration
+
+#### 12.2.1 Security Alerts
 - **High Failed Logins** - 10+ failures in 5 minutes
+- **Token Refresh Failures** - Authentication issues
+- **Suspicious Activity** - Automated bot detection
+
+#### 12.2.2 System Alerts
 - **API Errors** - 100+ errors in 5 minutes
 - **Lambda Errors** - Function failures
-- **Token Refresh Failures** - Authentication issues
 - **Throttling Alerts** - Rate limit violations
 
-### Key Metrics Tracked
+### 12.3 Key Metrics Tracked
 - Failed login attempts by IP
 - Daily active users
 - New signups
@@ -343,129 +692,179 @@ Domain: .filodelight.online  // Shared across subdomains
 - Lambda cold starts
 - Token refresh success rate
 
-## 💻 Frontend Stack
+---
 
-### Technologies
+# Part V: Frontend Development
+
+## Chapter 13: Frontend Stack & Components
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Monitoring & Alerting](#chapter-12-monitoring--alerting) | [▶️ Next: State Management](#chapter-14-state-management)
+
+### 13.1 Technology Stack
 - **React 19.1** - Latest React version
 - **Redux Toolkit** - State management
 - **React Router v7** - Navigation
 - **Axios** - HTTP client with interceptors
 - **Tailwind CSS** - Styling
 
-### Components
+### 13.2 Component Architecture
+
+#### 13.2.1 Authentication Components
 - `SignIn.jsx` - Login with Google OAuth
 - `SignUp.jsx` - Registration form
 - `Verify.jsx` - Email verification
-- `Dashboard.jsx` - Protected user area
 - `ForgotPassword.jsx` - Password reset initiation
 - `ResetPassword.jsx` - Password reset completion
-- `ProtectedRoute.jsx` - Auth guard
-- `InactivityWarning.jsx` - Session timeout
 
-## 🚢 CI/CD Pipeline
+#### 13.2.2 Protected Components
+- `Dashboard.jsx` - Protected user area
+- `ProtectedRoute.jsx` - Authentication guard
+- `InactivityWarning.jsx` - Session timeout management
 
-### GitHub Actions Workflow
+### 13.3 Security Features in Frontend
+- **100% httpOnly cookie usage** - No localStorage for tokens
+- **Automatic token refresh** - Seamless session management
+- **Inactivity detection** - 2-hour timeout with warnings
+- **CSRF protection** - SameSite=Strict cookies
+
+---
+
+## Chapter 14: State Management
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Frontend Stack & Components](#chapter-13-frontend-stack--components) | [▶️ Next: CI/CD Pipeline](#chapter-15-cicd-pipeline)
+
+### 14.1 Redux Store Structure
+```javascript
+const initialState = {
+  user: null,
+  isAuthenticated: false,
+  loading: false,
+  error: null,
+  verificationEmail: null,
+  signinError: null, // Persistent signin error for OAuth callbacks
+};
+```
+
+### 14.2 Authentication Flow
+1. **Sign In Action** → Server sets httpOnly cookies
+2. **Redux State Update** → User authenticated locally
+3. **Protected Route Access** → Automatic token validation
+4. **Token Refresh** → Transparent refresh using cookies
+
+### 14.3 Error Handling
+- **Redux-based error states** - No localStorage usage
+- **OAuth callback error handling** - URL parameter → Redux state
+- **Automatic error clearing** - On successful operations
+
+---
+
+## Chapter 15: CI/CD Pipeline
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: State Management](#chapter-14-state-management) | [▶️ Next: Cost Analysis](#chapter-16-cost-analysis)
+
+### 15.1 GitHub Actions Workflow
+
+#### 15.1.1 Trigger Configuration
 - **Trigger**: Push to `google-OAuth` branch
-- **Terraform Validation**: Format & syntax check
-- **React Build**: Node.js 20.x
-- **S3 Deployment**: Automatic upload
-- **CloudFront Invalidation**: Cache clearing
+- **Environment**: Ubuntu latest
+- **Node Version**: 20.x
 
-### Required GitHub Secrets
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `REACT_APP_API_URL`
-- `CLOUDFRONT_DISTRIBUTION_ID`
+#### 15.1.2 Pipeline Stages
+1. **Terraform Validation**: Format & syntax check
+2. **React Build**: Node.js build process
+3. **S3 Deployment**: Automatic upload
+4. **CloudFront Invalidation**: Cache clearing
 
-## 💰 Actual Infrastructure Costs
-
-### Current AWS Services Used
-| Service | Monthly Cost (Estimate) |
-|---------|------------------------|
-| Cognito | $0 (50K MAU free tier) |
-| Lambda | ~$2 (with free tier) |
-| API Gateway | ~$3.50 |
-| DynamoDB | ~$0.25 |
-| CloudWatch | ~$10 (3 dashboards) |
-| CloudFront | ~$1 |
-| Route53 | $0.50 |
-| S3 | ~$0.10 |
-| SNS | ~$0.10 |
-| **Total** | **~$17.45/month** |
-
-## 📁 Project Structure
-
-```
-.
-├── lambda_functions/         # 14 Lambda functions
-│   ├── signin/
-│   ├── signup/
-│   ├── google_auth/
-│   ├── verify/
-│   ├── forgot_password/
-│   ├── reset_password/
-│   ├── refresh/
-│   ├── logout/
-│   ├── user_info/
-│   ├── verify_token/
-│   ├── resend_verification/
-│   ├── custom_message/
-│   └── shared/              # Utils layer
-├── frontend-auth/           # React application
-│   ├── src/
-│   │   ├── components/     # 8 components
-│   │   ├── services/       # Auth service
-│   │   ├── store/          # Redux store
-│   │   ├── contexts/       # Auth context
-│   │   └── utils/          # Validation
-│   └── package.json
-├── .github/workflows/       # CI/CD pipeline
-├── *.tf files              # 14 Terraform configs
-└── terraform.tfvars.example
-```
-
-## 🔧 Configuration Files
-
-### Terraform Resources (14 files)
-- `api_gateway.tf` - REST API with rate limiting
-- `cognito.tf` - User pool & Google identity provider
-- `dynamodb.tf` - User records table
-- `lambda.tf` - Function definitions
-- `cloudfront.tf` - CDN configuration
-- `s3.tf` - Static website hosting
-- `route53.tf` - DNS configuration
-- `cloudwatch.tf` - Logs configuration
-- `cloudwatch_dashboards.tf` - 3 dashboards
-- `sns_alerts.tf` - Email notifications
-- `iam.tf` - Roles and policies
-- `variables.tf` - Configuration variables
-- `outputs.tf` - Deployment outputs
-- `provider.tf` - AWS provider
-
-## 🚨 Production Checklist
-
-- [x] Custom domain configured (filodelight.online)
-- [x] SSL certificates active
-- [x] Google OAuth configured
-- [x] Rate limiting enabled
-- [x] CloudWatch dashboards created
-- [x] SNS email alerts configured
-- [x] httpOnly cookies implemented
-- [x] CORS configured
-- [ ] DynamoDB backup strategy
-- [ ] Disaster recovery plan
-- [ ] Load testing completed
-- [ ] Security audit performed
-
-## 🛠️ Common Operations
-
-### View Logs
+### 15.2 Required GitHub Secrets
 ```bash
+# AWS Configuration
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Frontend Configuration
+REACT_APP_API_URL="https://api.yourawesome-domain.com"
+
+# CloudFront Configuration
+CLOUDFRONT_DISTRIBUTION_ID="your-distribution-id"
+```
+
+### 15.3 Deployment Flow
+```yaml
+name: Deploy Serverless Auth
+on:
+  push:
+    branches: [ google-OAuth ]
+  
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+      - name: Setup Node.js
+      - name: Setup Terraform
+      - name: Validate infrastructure
+      - name: Build React app
+      - name: Deploy to S3
+      - name: Invalidate CloudFront
+```
+
+---
+
+# Part VI: Operations & Maintenance
+
+## Chapter 16: Cost Analysis
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: CI/CD Pipeline](#chapter-15-cicd-pipeline) | [▶️ Next: Common Operations](#chapter-17-common-operations)
+
+### 16.1 Monthly Cost Breakdown
+
+| Service | Monthly Cost (Estimate) | Usage |
+|---------|------------------------|-------|
+| Cognito | $0 | 50K MAU free tier |
+| Lambda | ~$2 | With free tier |
+| API Gateway | ~$3.50 | REST API calls |
+| DynamoDB | ~$0.25 | User records |
+| CloudWatch | ~$10 | 3 dashboards |
+| CloudFront | ~$1 | Global CDN |
+| Route53 | $0.50 | DNS queries |
+| S3 | ~$0.10 | Static hosting |
+| SNS | ~$0.10 | Email alerts |
+| **Total** | **~$17.45/month** | **Production Ready** |
+
+### 16.2 Cost Optimization Tips
+- **Lambda**: Use provisioned concurrency sparingly
+- **CloudWatch**: Archive old logs regularly
+- **S3**: Enable intelligent tiering
+- **DynamoDB**: Use on-demand billing for variable loads
+
+### 16.3 Scaling Considerations
+- **10K Users**: ~$20/month
+- **100K Users**: ~$45/month
+- **1M Users**: ~$200/month
+
+---
+
+## Chapter 17: Common Operations
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Cost Analysis](#chapter-16-cost-analysis) | [▶️ Next: Troubleshooting Guide](#chapter-18-troubleshooting-guide)
+
+### 17.1 Monitoring Operations
+
+#### 17.1.1 View Logs
+```bash
+# View real-time Lambda logs
 aws logs tail /aws/lambda/serverless-auth-dev-signin --follow
+
+# View specific time range
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/serverless-auth-dev-signin \
+  --start-time 1693747200000 \
+  --end-time 1693750800000
 ```
 
-### Check Metrics
+#### 17.1.2 Check Metrics
 ```bash
+# Lambda invocation metrics
 aws cloudwatch get-metric-statistics \
   --namespace AWS/Lambda \
   --metric-name Invocations \
@@ -474,10 +873,23 @@ aws cloudwatch get-metric-statistics \
   --end-time 2025-09-04T00:00:00Z \
   --period 3600 \
   --statistics Sum
+
+# API Gateway error metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ApiGateway \
+  --metric-name 4XXError \
+  --dimensions Name=ApiName,Value=serverless-auth-dev-api \
+  --start-time 2025-09-03T00:00:00Z \
+  --end-time 2025-09-04T00:00:00Z \
+  --period 300 \
+  --statistics Sum
 ```
 
-### Update Lambda Function
+### 17.2 Deployment Operations
+
+#### 17.2.1 Update Lambda Function
 ```bash
+# Package and update function
 cd lambda_functions/signin
 zip -r ../signin.zip .
 aws lambda update-function-code \
@@ -485,33 +897,547 @@ aws lambda update-function-code \
   --zip-file fileb://../signin.zip
 ```
 
-## 🐛 Troubleshooting
+#### 17.2.2 Update Frontend
+```bash
+# Build and deploy React app
+cd frontend-auth
+npm run build
+aws s3 sync build/ s3://your-bucket-name/react-build --delete
 
-### Common Issues
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation \
+  --distribution-id YOUR_DIST_ID \
+  --paths "/*"
+```
 
-**Cookie not being set**
+### 17.3 Database Operations
+
+#### 17.3.1 DynamoDB Queries
+```bash
+# Get user record
+aws dynamodb get-item \
+  --table-name serverless-auth-dev-users \
+  --key '{"userId":{"S":"user-123"}}'
+
+# Scan recent users
+aws dynamodb scan \
+  --table-name serverless-auth-dev-users \
+  --filter-expression "createdAt > :date" \
+  --expression-attribute-values '{":date":{"S":"2025-09-01"}}'
+```
+
+---
+
+## Chapter 18: Troubleshooting Guide
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Common Operations](#chapter-17-common-operations) | [▶️ Next: Project Structure](#appendix-a-project-structure)
+
+### 18.1 Authentication Issues
+
+#### 18.1.1 Cookie Not Being Set
+**Symptoms:**
+- User appears logged out after refresh
+- Dashboard redirects to signin
+
+**Solutions:**
+```bash
+# Check domain configuration
+dig yourawesome-domain.com A
+dig api.yourawesome-domain.com A
+
+# Verify CORS settings
+curl -I -X OPTIONS https://api.yourawesome-domain.com/auth/signin \
+  -H "Origin: https://yourawesome-domain.com"
+```
+
+**Common Fixes:**
 - Ensure domains share same root domain
-- Check SameSite and Secure flags
-- Verify CORS configuration
+- Check SameSite and Secure flags in Lambda functions
+- Verify CORS configuration allows credentials
 
-**Google OAuth redirect error**
-- Update redirect URIs in Google Console:
-  - `https://api.filodelight.online/auth/google/callback`
-  - `https://filodelight.online/auth/callback`
-- Check environment variables in Lambda (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-- Verify API Gateway routes are deployed
-- Ensure OAuth consent screen is published (not in draft)
-- Add test users if app is in testing mode
+#### 18.1.2 Google OAuth Redirect Error
+**Symptoms:**
+- "redirect_uri_mismatch" error
+- OAuth consent screen issues
 
-**Rate limiting too strict**
-- Adjust limits in `api_gateway.tf`
-- Monitor CloudWatch metrics
-- Consider user patterns
+**Solutions:**
+1. **Update Google Console Redirect URIs:**
+   ```
+   https://api.yourawesome-domain.com/auth/google/callback
+   https://yourawesome-domain.com/auth/callback
+   ```
 
-**Lambda cold starts**
-- Enable provisioned concurrency
-- Optimize package size
+2. **Check Lambda Environment Variables:**
+   ```bash
+   aws lambda get-function-configuration \
+     --function-name serverless-auth-dev-google-auth \
+     --query 'Environment.Variables'
+   ```
+
+3. **Verify OAuth Consent Screen:**
+   - Ensure app is published (not in draft)
+   - Add test users if in testing mode
+   - Check scopes: email, profile, openid
+
+### 18.2 Infrastructure Issues
+
+#### 18.2.1 ACM Certificate Validation Failed
+**Symptoms:**
+- Terraform apply fails with certificate timeout
+- SSL certificate shows "Pending Validation"
+
+**Solutions:**
+```bash
+# Check DNS propagation
+nslookup -type=ns yourawesome-domain.com
+
+# Verify Route53 records
+aws route53 list-resource-record-sets \
+  --hosted-zone-id YOUR_ZONE_ID
+
+# Check certificate status
+aws acm describe-certificate \
+  --certificate-arn YOUR_CERT_ARN \
+  --region us-east-1
+```
+
+**Common Fixes:**
+- Wait for DNS propagation (1.5+ hours minimum)
+- Verify nameservers point to Route53
+- Check Route53 hosted zone configuration
+
+#### 18.2.2 Rate Limiting Too Strict
+**Symptoms:**
+- Users getting 429 errors
+- Legitimate traffic being blocked
+
+**Solutions:**
+```bash
+# Check current rate limits
+aws apigateway get-method \
+  --rest-api-id YOUR_API_ID \
+  --resource-id YOUR_RESOURCE_ID \
+  --http-method POST
+
+# Monitor throttling metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ApiGateway \
+  --metric-name 4XXError \
+  --dimensions Name=ApiName,Value=your-api-name
+```
+
+**Adjustments:**
+- Modify rate limits in `api_gateway.tf`
+- Consider user patterns and peak usage
+- Implement exponential backoff in frontend
+
+#### 18.2.3 Lambda Cold Starts
+**Symptoms:**
+- Slow initial response times
+- Timeout errors on first request
+
+**Solutions:**
+```bash
+# Enable provisioned concurrency
+aws lambda put-provisioned-concurrency-config \
+  --function-name serverless-auth-dev-signin \
+  --qualifier '$LATEST' \
+  --provisioned-concurrency-executions 5
+
+# Monitor cold start metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/Lambda \
+  --metric-name Duration \
+  --dimensions Name=FunctionName,Value=serverless-auth-dev-signin
+```
+
+**Optimizations:**
 - Use Lambda layers for dependencies
+- Minimize package size
+- Consider provisioned concurrency for critical functions
+
+### 18.3 Frontend Issues
+
+#### 18.3.1 Build Failures
+**Symptoms:**
+- npm run build fails
+- Missing dependencies
+
+**Solutions:**
+```bash
+# Clear cache and reinstall
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+
+# Check for version conflicts
+npm ls
+npm audit
+```
+
+#### 18.3.2 CORS Errors
+**Symptoms:**
+- Browser console shows CORS errors
+- API calls failing from frontend
+
+**Solutions:**
+```bash
+# Test CORS configuration
+curl -I -X OPTIONS https://api.yourawesome-domain.com/auth/signin \
+  -H "Origin: https://yourawesome-domain.com" \
+  -H "Access-Control-Request-Method: POST"
+
+# Check API Gateway CORS settings
+aws apigateway get-method \
+  --rest-api-id YOUR_API_ID \
+  --resource-id YOUR_RESOURCE_ID \
+  --http-method OPTIONS
+```
+
+---
+
+# Part VII: Appendices
+
+## Appendix A: Project Structure
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Troubleshooting Guide](#chapter-18-troubleshooting-guide) | [▶️ Next: Configuration Files](#appendix-b-configuration-files)
+
+### A.1 Complete Directory Structure
+
+```
+.
+├── lambda_functions/                    # 12 Lambda functions
+│   ├── signin/
+│   │   ├── handler.py                  # Authentication logic
+│   │   └── requirements.txt
+│   ├── signup/
+│   │   ├── handler.py                  # User registration
+│   │   └── requirements.txt
+│   ├── google_auth/
+│   │   ├── handler.py                  # Google OAuth flow
+│   │   └── requirements.txt
+│   ├── verify/
+│   │   ├── handler.py                  # Email verification
+│   │   └── requirements.txt
+│   ├── forgot_password/
+│   │   ├── handler.py                  # Password reset initiation
+│   │   └── requirements.txt
+│   ├── reset_password/
+│   │   ├── handler.py                  # Password reset completion
+│   │   └── requirements.txt
+│   ├── refresh/
+│   │   ├── handler.py                  # Token refresh
+│   │   └── requirements.txt
+│   ├── logout/
+│   │   ├── handler.py                  # Session termination
+│   │   └── requirements.txt
+│   ├── user_info/
+│   │   ├── handler.py                  # User profile retrieval
+│   │   └── requirements.txt
+│   ├── verify_token/
+│   │   ├── handler.py                  # Token validation
+│   │   └── requirements.txt
+│   ├── resend_verification/
+│   │   ├── handler.py                  # Resend verification email
+│   │   └── requirements.txt
+│   ├── custom_message/
+│   │   ├── handler.py                  # Cognito email customization
+│   │   └── requirements.txt
+│   └── shared/                         # Shared utilities
+│       ├── utils.py                    # Common functions
+│       └── requirements.txt
+│
+├── frontend-auth/                      # React application
+│   ├── public/
+│   │   ├── index.html
+│   │   └── manifest.json
+│   ├── src/
+│   │   ├── components/                 # 8 React components
+│   │   │   ├── SignIn.jsx             # Login form with Google OAuth
+│   │   │   ├── SignUp.jsx             # Registration form
+│   │   │   ├── Verify.jsx             # Email verification
+│   │   │   ├── Dashboard.jsx          # Protected user area
+│   │   │   ├── ForgotPassword.jsx     # Password reset initiation
+│   │   │   ├── ResetPassword.jsx      # Password reset completion
+│   │   │   ├── ProtectedRoute.jsx     # Authentication guard
+│   │   │   └── InactivityWarning.jsx  # Session timeout
+│   │   ├── services/
+│   │   │   ├── authService.js         # Authentication API client
+│   │   │   └── loggingService.js      # Client-side logging
+│   │   ├── store/                     # Redux state management
+│   │   │   ├── store.js               # Redux store configuration
+│   │   │   └── slices/
+│   │   │       └── authSlice.js       # Authentication state slice
+│   │   ├── contexts/
+│   │   │   └── AuthContext.js         # React context (legacy)
+│   │   ├── config/
+│   │   │   └── api.js                 # API endpoints configuration
+│   │   ├── utils/
+│   │   │   └── validation.js          # Form validation utilities
+│   │   ├── App.js                     # Main application component
+│   │   └── index.js                   # Application entry point
+│   ├── package.json                   # Dependencies and scripts
+│   └── tailwind.config.js             # Tailwind CSS configuration
+│
+├── .github/                           # CI/CD pipeline
+│   └── workflows/
+│       └── deploy.yml                 # GitHub Actions workflow
+│
+├── templates/                         # Email templates
+│   ├── verification_email.html       # Email verification template
+│   └── password_reset_email.html     # Password reset template
+│
+├── terraform files/                  # Infrastructure as Code
+│   ├── acm.tf                        # SSL certificates management
+│   ├── api_gateway.tf                # REST API with rate limiting
+│   ├── cloudfront.tf                 # CDN configuration
+│   ├── cloudwatch.tf                 # Logging configuration
+│   ├── cloudwatch_dashboards.tf      # 3 monitoring dashboards
+│   ├── cognito.tf                    # User pool & identity providers
+│   ├── dynamodb.tf                   # User records database
+│   ├── iam.tf                        # Roles and policies
+│   ├── lambda.tf                     # Function definitions
+│   ├── outputs.tf                    # All deployment outputs
+│   ├── provider.tf                   # AWS provider configuration
+│   ├── route53.tf                    # DNS configuration
+│   ├── s3.tf                         # Static website hosting
+│   ├── sns_alerts.tf                 # Email notifications
+│   └── variables.tf                  # Configuration variables
+│
+├── terraform.tfvars.example          # Example configuration
+├── README.md                         # This documentation
+└── LICENSE                           # MIT license
+```
+
+### A.2 Key File Purposes
+
+#### A.2.1 Lambda Functions
+- **Authentication**: signin, google_auth, refresh, logout
+- **User Management**: signup, verify, user_info
+- **Password Management**: forgot_password, reset_password
+- **Utilities**: verify_token, resend_verification, custom_message
+
+#### A.2.2 Frontend Structure
+- **Components**: Reusable UI components with security focus
+- **Services**: API communication with httpOnly cookie handling
+- **Store**: Redux-based state management
+- **Utils**: Form validation and helper functions
+
+#### A.2.3 Infrastructure Files
+- **Core Services**: lambda.tf, api_gateway.tf, cognito.tf
+- **Security**: acm.tf, iam.tf (SSL and permissions)
+- **Monitoring**: cloudwatch.tf, sns_alerts.tf
+- **Frontend**: s3.tf, cloudfront.tf, route53.tf
+
+---
+
+## Appendix B: Configuration Files
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Project Structure](#appendix-a-project-structure) | [▶️ Next: Production Checklist](#appendix-c-production-checklist)
+
+### B.1 Terraform Configuration Files
+
+#### B.1.1 Core Infrastructure (6 files)
+- `provider.tf` - AWS provider and region settings
+- `variables.tf` - All configuration variables
+- `outputs.tf` - Deployment outputs and references
+- `lambda.tf` - 12 Lambda function definitions
+- `api_gateway.tf` - REST API with comprehensive rate limiting
+- `iam.tf` - Security roles and least-privilege policies
+
+#### B.1.2 Authentication & Security (3 files)
+- `cognito.tf` - User pool, client, and Google identity provider
+- `acm.tf` - SSL certificate management (us-east-1 + regional)
+- `dynamodb.tf` - User records table with GSI
+
+#### B.1.3 Frontend Infrastructure (3 files)
+- `s3.tf` - Static website hosting bucket
+- `cloudfront.tf` - Global CDN with security headers
+- `route53.tf` - DNS records for domain routing
+
+#### B.1.4 Monitoring & Alerting (2 files)
+- `cloudwatch.tf` - Log groups and retention policies
+- `cloudwatch_dashboards.tf` - 3 comprehensive dashboards
+- `sns_alerts.tf` - Email notification system
+
+### B.2 Frontend Configuration Files
+
+#### B.2.1 React Configuration
+```javascript
+// package.json - Key dependencies
+{
+  "dependencies": {
+    "react": "^19.1.0",
+    "@reduxjs/toolkit": "^2.0.0",
+    "react-router-dom": "^7.0.0",
+    "axios": "^1.6.0"
+  }
+}
+
+// tailwind.config.js - Styling configuration
+module.exports = {
+  content: ["./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        emerald: { /* custom colors */ }
+      }
+    }
+  }
+}
+```
+
+#### B.2.2 API Configuration
+```javascript
+// src/config/api.js - API endpoints
+export const API_ENDPOINTS = {
+  SIGNIN: '/auth/signin',
+  SIGNUP: '/auth/signup',
+  GOOGLE_AUTH: '/auth/google',
+  VERIFY_TOKEN: '/auth/verify-token',
+  USER_INFO: '/auth/user-info',
+  REFRESH: '/auth/refresh',
+  LOGOUT: '/auth/logout'
+};
+```
+
+### B.3 Environment Variables
+
+#### B.3.1 Terraform Variables (terraform.tfvars)
+```hcl
+# Domain Configuration
+root_domain = "yourawesome-domain.com"
+api_subdomain = "api"
+
+# Google OAuth
+google_client_id = "your-google-client-id"
+google_client_secret = "your-google-client-secret"
+
+# Alerts
+security_alert_email = "security@yourcompany.com"
+system_alert_email = "devops@yourcompany.com"
+
+# AWS Configuration
+aws_region = "ap-southeast-2"
+environment = "production"
+project_name = "serverless-auth"
+```
+
+#### B.3.2 GitHub Secrets
+```bash
+# AWS Access
+AWS_ACCESS_KEY_ID="AKIA..."
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Frontend Configuration
+REACT_APP_API_URL="https://api.yourawesome-domain.com"
+CLOUDFRONT_DISTRIBUTION_ID="E1234567890ABC"
+
+# Optional: Slack Integration
+SLACK_WEBHOOK_URL="https://hooks.slack.com/..."
+```
+
+---
+
+## Appendix C: Production Checklist
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Configuration Files](#appendix-b-configuration-files)
+
+### C.1 Pre-Deployment Checklist
+
+#### C.1.1 Domain & DNS Setup
+- [x] Domain purchased and owned
+- [x] Route53 hosted zone created
+- [x] Nameservers updated at registrar
+- [x] DNS propagation completed (1.5+ hours)
+- [x] DNS resolution verified globally
+
+#### C.1.2 Google OAuth Setup
+- [x] Google Cloud project created
+- [x] OAuth consent screen configured
+- [x] Client ID and secret generated
+- [x] Redirect URIs properly configured
+- [x] Test users added (if in testing mode)
+
+#### C.1.3 AWS Environment
+- [x] AWS account configured
+- [x] Programmatic access enabled
+- [x] Terraform installed and configured
+- [x] Required permissions granted
+
+### C.2 Deployment Checklist
+
+#### C.2.1 Infrastructure Deployment
+- [x] `terraform plan` reviewed
+- [x] All resources deployed successfully
+- [x] SSL certificates validated
+- [x] API Gateway endpoints accessible
+- [x] CloudWatch dashboards created
+
+#### C.2.2 Application Deployment
+- [x] React application built successfully
+- [x] Static files uploaded to S3
+- [x] CloudFront cache invalidated
+- [x] Frontend accessible via custom domain
+
+### C.3 Post-Deployment Verification
+
+#### C.3.1 Functionality Testing
+- [x] User registration working
+- [x] Email verification functional
+- [x] Google OAuth login successful
+- [x] Password reset flow operational
+- [x] Session management working
+- [x] Logout clearing cookies properly
+
+#### C.3.2 Security Verification
+- [x] HTTPS enforced everywhere
+- [x] httpOnly cookies set correctly
+- [x] Rate limiting active
+- [x] CORS configured properly
+- [x] No tokens in localStorage/sessionStorage
+
+#### C.3.3 Monitoring Setup
+- [x] CloudWatch dashboards populated
+- [x] SNS alerts configured
+- [x] Email notifications working
+- [x] Log aggregation functional
+
+### C.4 Production Readiness
+
+#### C.4.1 Security Audit
+- [ ] Penetration testing completed
+- [ ] Security scan performed
+- [ ] OWASP compliance verified
+- [ ] SSL certificate chain validated
+
+#### C.4.2 Performance & Reliability
+- [ ] Load testing completed
+- [ ] Error handling verified
+- [ ] Backup strategy implemented
+- [ ] Disaster recovery plan documented
+
+#### C.4.3 Operational Readiness
+- [ ] Runbooks created
+- [ ] Team training completed
+- [ ] Support procedures documented
+- [ ] Escalation processes defined
+
+### C.5 Maintenance Schedule
+
+#### C.5.1 Regular Tasks
+- **Daily**: Monitor dashboards and alerts
+- **Weekly**: Review error logs and metrics
+- **Monthly**: Update dependencies and security patches
+- **Quarterly**: Review and update documentation
+
+#### C.5.2 Backup & Recovery
+- **DynamoDB**: Point-in-time recovery enabled
+- **Lambda Functions**: Source code in version control
+- **Configuration**: Terraform state backed up
+- **Certificates**: Automatic renewal configured
+
+---
 
 ## 📝 License
 
@@ -532,4 +1458,6 @@ GitHub: [@CaringalML](https://github.com/CaringalML)
 ---
 
 *Last Updated: September 2025*  
-*Version: 1.0.0*
+*Version: 2.0.0 - Book Format*
+
+> **🔝 [Back to Top](#-table-of-contents)**

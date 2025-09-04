@@ -1,9 +1,4 @@
-# Data source for the SSL certificate (must be in us-east-1 for CloudFront)
-data "aws_acm_certificate" "cloudfront" {
-  provider = aws.us_east_1
-  domain   = var.root_domain
-  statuses = ["ISSUED"]
-}
+# ACM certificate is managed in acm.tf
 
 resource "aws_cloudfront_origin_access_control" "s3_oac" {
   name                              = "${var.oac_name}-${var.environment}"
@@ -70,7 +65,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.cloudfront.arn
+    acm_certificate_arn      = aws_acm_certificate_validation.cloudfront.certificate_arn
     minimum_protocol_version = "TLSv1.2_2021"
     ssl_support_method       = "sni-only"
   }

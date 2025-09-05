@@ -101,7 +101,7 @@ const SignIn = () => {
     // Set local loading state for regular signin
     setIsSigningIn(true);
     
-    // Get reCAPTCHA token
+    // Get reCAPTCHA token (gracefully handles failures)
     const recaptchaToken = await getRecaptchaToken('signin');
     
     const result = await dispatch(signin({

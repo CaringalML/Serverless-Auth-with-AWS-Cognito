@@ -20,13 +20,6 @@ const RecaptchaProvider = ({ children }) => {
         appendTo: 'head',
         nonce: undefined,
       }}
-      container={{
-        element: 'recaptcha-badge',
-        parameters: {
-          badge: 'bottomright',
-          theme: 'light'
-        }
-      }}
     >
       {children}
     </GoogleReCaptchaProvider>

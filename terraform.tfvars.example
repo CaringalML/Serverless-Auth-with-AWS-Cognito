@@ -9,8 +9,3 @@ google_client_secret = "GOCSPX-aBcDeFgHiJkLmNoPqRsTuVwXyZ"
 security_alert_email = "your-email@example.com"
 system_alert_email   = "your-email@example.com"
 
-# Google reCAPTCHA v3 Configuration
-# Get your keys from: https://www.google.com/recaptcha/admin
-# Add domains: localhost, filodelight.online, api.filodelight.online
-recaptcha_site_key   = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"  # Test key - replace with your own
-recaptcha_secret_key = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe"  # Test key - replace with your own

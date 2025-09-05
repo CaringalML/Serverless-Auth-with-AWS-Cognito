@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { signup, clearError } from '../store/slices/authSlice';
-import { useRecaptcha } from '../hooks/useRecaptcha';
 import { 
   validateEmail, 
   validatePassword, 
@@ -36,13 +35,10 @@ const SignUp = () => {
   const [passwordStrength, setPasswordStrength] = useState({ strength: 0, label: '', color: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [showDebug, setShowDebug] = useState(false);
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
-  const { getRecaptchaToken, isReady } = useRecaptcha();
 
   useEffect(() => {
     // Validate fields on change if they've been touched
@@ -82,9 +78,6 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Clear previous debug info
-    setDebugInfo(null);
-    
     // Touch all fields to show validation
     setTouched({
       name: true,
@@ -104,52 +97,14 @@ const SignUp = () => {
       return;
     }
 
-    // Debug info collection
-    const debugData = {
-      timestamp: new Date().toISOString(),
-      recaptchaReady: isReady,
-      formData: {
-        name: formData.name,
-        email: formData.email,
-        passwordLength: formData.password.length
-      }
-    };
+    const result = await dispatch(signup({
+      email: formData.email,
+      password: formData.password,
+      name: formData.name,
+    }));
 
-    try {
-      // Get reCAPTCHA token
-      debugData.tokenGenerationStart = new Date().toISOString();
-      const recaptchaToken = await getRecaptchaToken('signup');
-      debugData.tokenGenerated = !!recaptchaToken;
-      debugData.tokenLength = recaptchaToken ? recaptchaToken.length : 0;
-      
-      if (!recaptchaToken) {
-        debugData.error = 'Failed to get reCAPTCHA token';
-        setDebugInfo(debugData);
-        throw new Error('Failed to get reCAPTCHA token. Please try again.');
-      }
-
-      debugData.signupRequestStart = new Date().toISOString();
-      const result = await dispatch(signup({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        recaptchaToken,
-      }));
-
-      debugData.signupRequestEnd = new Date().toISOString();
-      debugData.signupSuccess = signup.fulfilled.match(result);
-
-      if (signup.fulfilled.match(result)) {
-        navigate('/verify', { state: { email: formData.email } });
-      } else {
-        debugData.signupError = result.payload || result.error;
-        setDebugInfo(debugData);
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      debugData.catchError = error.message;
-      setDebugInfo(debugData);
-      dispatch(setError(error.message));
+    if (signup.fulfilled.match(result)) {
+      navigate('/verify', { state: { email: formData.email } });
     }
   };
 
@@ -161,16 +116,6 @@ const SignUp = () => {
       <div className="absolute bottom-1/3 right-1/3 w-48 h-48 bg-green-400/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
       
       <div className="relative bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-emerald-100/50 w-full max-w-md">
-        {/* Debug Toggle Button */}
-        {process.env.NODE_ENV === 'development' && (
-          <button
-            onClick={() => setShowDebug(!showDebug)}
-            className="absolute top-2 right-2 text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
-          >
-            {showDebug ? 'Hide' : 'Show'} Debug
-          </button>
-        )}
-
         <div className="text-center mb-8">
           <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent mb-2">
             Create Account
@@ -178,45 +123,14 @@ const SignUp = () => {
           <p className="text-emerald-600/70 font-medium">Join our digital ecosystem</p>
         </div>
         
-        {/* Debug Info Panel */}
-        {showDebug && debugInfo && (
-          <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 mb-4 text-xs">
-            <h4 className="font-bold mb-2">Debug Information:</h4>
-            <pre className="whitespace-pre-wrap overflow-auto max-h-40">
-              {JSON.stringify(debugInfo, null, 2)}
-            </pre>
-          </div>
-        )}
-
-        {/* reCAPTCHA Status Indicator */}
-        <div className="mb-4 text-center">
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            isReady 
-              ? 'bg-green-100 text-green-700' 
-              : 'bg-yellow-100 text-yellow-700'
-          }`}>
-            <span className={`w-2 h-2 mr-2 rounded-full ${
-              isReady ? 'bg-green-500' : 'bg-yellow-500'
-            } animate-pulse`}></span>
-            reCAPTCHA: {isReady ? 'Ready' : 'Loading...'}
-          </div>
-        </div>
-        
         {error && (
           <div className="bg-red-50/80 backdrop-blur border border-red-200/50 text-red-600 px-4 py-3 rounded-xl mb-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-start">
-                <svg className="w-5 h-5 mr-2 text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
-                <div>
-                  <div className="font-medium">{error}</div>
-                  {error.includes('403') && (
-                    <div className="text-xs mt-1">
-                      This might be a CORS or reCAPTCHA validation issue. Check the console for details.
-                    </div>
-                  )}
-                </div>
+                {error}
               </div>
               <button
                 onClick={() => dispatch(clearError())}
@@ -448,7 +362,7 @@ const SignUp = () => {
 
           <button
             type="submit"
-            disabled={loading || !isReady}
+            disabled={loading}
             className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:from-emerald-700 hover:to-green-700 hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:transform-none disabled:hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
           >
             {loading ? (
@@ -459,14 +373,6 @@ const SignUp = () => {
                 </svg>
                 Creating Account...
               </div>
-            ) : !isReady ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
-                </svg>
-                Loading reCAPTCHA...
-              </span>
             ) : (
               <span className="flex items-center justify-center">
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,21 +390,6 @@ const SignUp = () => {
             <Link to="/signin" className="font-semibold text-emerald-600 hover:text-emerald-800 transition-colors duration-200 hover:underline">
               Sign In
             </Link>
-          </p>
-        </div>
-        
-        {/* This site is protected by reCAPTCHA notice */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-gray-500">
-            This site is protected by reCAPTCHA and the Google{' '}
-            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
-              Privacy Policy
-            </a>{' '}
-            and{' '}
-            <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
-              Terms of Service
-            </a>{' '}
-            apply.
           </p>
         </div>
       </div>

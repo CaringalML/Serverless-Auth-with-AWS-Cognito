@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { forgotPassword, clearError } from '../store/slices/authSlice';
-import useRecaptcha from '../hooks/useRecaptcha';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -15,7 +14,6 @@ const ForgotPassword = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
-  const { getRecaptchaToken } = useRecaptcha();
 
   useEffect(() => {
     if (resendCountdown > 0) {
@@ -32,10 +30,7 @@ const ForgotPassword = () => {
     // Don't allow submission during countdown
     if (resendCountdown > 0) return;
     
-    // Get reCAPTCHA token
-    const recaptchaToken = await getRecaptchaToken('forgot_password');
-    
-    const result = await dispatch(forgotPassword({ email, recaptchaToken }));
+    const result = await dispatch(forgotPassword({ email }));
 
     if (forgotPassword.fulfilled.match(result)) {
       setIsCodeSent(true);

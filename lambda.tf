@@ -158,8 +158,6 @@ resource "aws_lambda_function" "auth_functions" {
       FRONTEND_DOMAIN        = var.root_domain
       GOOGLE_CLIENT_ID       = var.google_client_id
       GOOGLE_CLIENT_SECRET   = var.google_client_secret
-      RECAPTCHA_SECRET_KEY   = var.recaptcha_secret_key
-      RECAPTCHA_THRESHOLD    = var.recaptcha_threshold
     }
   }
 

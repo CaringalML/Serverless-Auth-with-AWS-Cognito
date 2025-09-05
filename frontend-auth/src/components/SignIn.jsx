@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { signin, clearError, clearSigninError, setSigninError } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
-import useRecaptcha from '../hooks/useRecaptcha';
 
 const SignIn = () => {
   const [formData, setFormData] = useState({
@@ -29,7 +28,6 @@ const SignIn = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { signinError } = useSelector((state) => state.auth);
-  const { getRecaptchaToken } = useRecaptcha();
 
   // Load error from URL parameters on component mount (for Google OAuth callbacks)
   useEffect(() => {
@@ -101,13 +99,9 @@ const SignIn = () => {
     // Set local loading state for regular signin
     setIsSigningIn(true);
     
-    // Get reCAPTCHA token (gracefully handles failures)
-    const recaptchaToken = await getRecaptchaToken('signin');
-    
     const result = await dispatch(signin({
       email: formData.email,
       password: formData.password,
-      recaptchaToken: recaptchaToken,
     }));
 
     // Clear local loading state

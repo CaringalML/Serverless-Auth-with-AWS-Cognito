@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 
 sys.path.append('/opt')
 from utils import create_response, parse_body
-from recaptcha import verify_recaptcha, get_recaptcha_error_response
 
 cognito_client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')
@@ -18,12 +17,6 @@ def lambda_handler(event, context):
         email = body.get('email')
         password = body.get('password')
         name = body.get('name')
-        recaptcha_token = body.get('recaptchaToken')
-        
-        # Verify reCAPTCHA first (if configured)
-        is_valid, score, error_message = verify_recaptcha(recaptcha_token, 'signup')
-        if not is_valid:
-            return create_response(403, get_recaptcha_error_response(score, error_message))
         
         if not all([email, password, name]):
             return create_response(400, {

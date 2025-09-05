@@ -1,20 +1,11 @@
 import { useCallback } from 'react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 const useRecaptcha = () => {
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const getRecaptchaToken = useCallback(
     async (action = 'default') => {
       console.log('getRecaptchaToken called with action:', action);
-      console.log('executeRecaptcha function:', executeRecaptcha ? 'Available' : 'Not available');
       
-      // If reCAPTCHA is not configured, return null
-      if (!executeRecaptcha) {
-        console.log('reCAPTCHA not available - continuing without token');
-        return null;
-      }
-
       // Check if reCAPTCHA is properly loaded
       console.log('window.grecaptcha:', window.grecaptcha ? 'Available' : 'Not available');
       if (window.grecaptcha) {
@@ -27,62 +18,49 @@ const useRecaptcha = () => {
         return null;
       }
 
+      const siteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+      if (!siteKey) {
+        console.log('reCAPTCHA site key not configured - continuing without token');
+        return null;
+      }
+
       try {
-        console.log('Executing reCAPTCHA...');
+        console.log('Executing reCAPTCHA with direct API...');
         
-        // Add a longer delay to ensure reCAPTCHA is fully ready
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // First try the React wrapper
-        let token = await executeRecaptcha(action);
-        console.log('reCAPTCHA token (React wrapper):', token ? 'Yes (length: ' + token.length + ')' : 'No');
-        
-        // If React wrapper fails, try direct grecaptcha API
-        if (!token && window.grecaptcha && window.grecaptcha.execute) {
-          console.log('Trying direct grecaptcha API...');
-          
-          const siteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
-          if (siteKey) {
-            try {
-              // Use grecaptcha.ready to ensure reCAPTCHA is fully loaded
-              token = await new Promise((resolve, reject) => {
-                window.grecaptcha.ready(() => {
-                  console.log('grecaptcha is ready');
-                  window.grecaptcha.execute(siteKey, { action })
-                    .then((token) => {
-                      console.log('Token from ready callback:', token ? 'Yes (length: ' + token.length + ')' : 'No');
-                      resolve(token);
-                    })
-                    .catch((error) => {
-                      console.log('Error in ready callback:', error);
-                      // Try without action as fallback
-                      window.grecaptcha.execute(siteKey)
-                        .then((fallbackToken) => {
-                          console.log('Fallback token:', fallbackToken ? 'Yes (length: ' + fallbackToken.length + ')' : 'No');
-                          resolve(fallbackToken);
-                        })
-                        .catch((fallbackError) => {
-                          console.log('Fallback error:', fallbackError);
-                          resolve(null);
-                        });
-                    });
-                });
+        // Use grecaptcha.ready to ensure reCAPTCHA is fully loaded and initialized
+        const token = await new Promise((resolve, reject) => {
+          window.grecaptcha.ready(() => {
+            console.log('grecaptcha is ready, executing with site key:', siteKey);
+            window.grecaptcha.execute(siteKey, { action })
+              .then((token) => {
+                console.log('Token from ready callback:', token ? 'Yes (length: ' + token.length + ')' : 'No');
+                resolve(token);
+              })
+              .catch((error) => {
+                console.log('Error in ready callback:', error);
+                // Try without action as fallback
+                console.log('Trying without action parameter...');
+                window.grecaptcha.execute(siteKey)
+                  .then((fallbackToken) => {
+                    console.log('Fallback token:', fallbackToken ? 'Yes (length: ' + fallbackToken.length + ')' : 'No');
+                    resolve(fallbackToken);
+                  })
+                  .catch((fallbackError) => {
+                    console.log('Fallback error:', fallbackError);
+                    resolve(null);
+                  });
               });
-              
-              console.log('reCAPTCHA token (direct API with ready):', token ? 'Yes (length: ' + token.length + ')' : 'No');
-              
-            } catch (directError) {
-              console.log('Direct API error:', directError);
-            }
-          }
-        }
+          });
+        });
         
         if (!token) {
           console.warn('reCAPTCHA token is empty - continuing without token');
           return null;
         }
         
+        console.log('reCAPTCHA token generated successfully!');
         return token;
+        
       } catch (error) {
         console.error('Error executing reCAPTCHA:', error);
         // Return null to allow form submission without reCAPTCHA
@@ -90,7 +68,7 @@ const useRecaptcha = () => {
         return null;
       }
     },
-    [executeRecaptcha]
+    [] // No dependencies since we're using direct API
   );
 
   return { getRecaptchaToken };

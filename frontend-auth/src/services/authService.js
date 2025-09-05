@@ -94,18 +94,8 @@ class AuthService {
       async (error) => {
         const originalRequest = error.config;
         
-        // Log API errors - check if originalRequest exists
-        if (originalRequest) {
-          const duration = originalRequest.metadata?.startTime ? 
-            Date.now() - originalRequest.metadata.startTime : 0;
-          loggingService.logAPICall(
-            originalRequest.method?.toUpperCase() || 'UNKNOWN',
-            originalRequest.url || 'unknown',
-            error.response?.status || 0,
-            duration,
-            error
-          );
-        }
+        // Suppress URL logging for security
+        // No API error logging to prevent URL exposure
         
         // Don't try to refresh tokens for authentication endpoints
         const isAuthEndpoint = originalRequest?.url?.includes('/auth/signin') || 
@@ -193,7 +183,12 @@ class AuthService {
       });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      // Create clean error without axios details
+      const cleanError = {
+        error: error.response?.data?.error || 'Request failed',
+        message: error.response?.data?.message || 'An error occurred'
+      };
+      throw cleanError;
     }
   }
 
@@ -207,6 +202,7 @@ class AuthService {
       }, {
         withCredentials: true  // Ensure cookies are included
       });
+      
       
       // SUCCESS: Server has set secure httpOnly cookies with tokens
       // Tokens are invisible to JavaScript for maximum security
@@ -222,10 +218,23 @@ class AuthService {
       
       return response.data;
     } catch (error) {
-      // Log failed login attempt
-      loggingService.logLogin(false, email, error.response?.data || error);
+      // Create clean error without axios details to prevent URL exposure
+      const status = error.response?.status;
+      let errorMessage = 'Authentication failed';
       
-      throw error.response?.data || error;
+      if (status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (status === 403) {
+        errorMessage = 'Account access denied';
+      } else if (status === 404) {
+        errorMessage = 'User not found';
+      }
+      
+      const cleanError = new Error(errorMessage);
+      cleanError.error = errorMessage;
+      cleanError.message = errorMessage;
+      
+      throw cleanError;
     }
   }
 
@@ -236,7 +245,12 @@ class AuthService {
       });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      // Create clean error without axios details
+      const cleanError = {
+        error: error.response?.data?.error || 'Request failed',
+        message: error.response?.data?.message || 'An error occurred'
+      };
+      throw cleanError;
     }
   }
 
@@ -249,7 +263,12 @@ class AuthService {
       });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      // Create clean error without axios details
+      const cleanError = {
+        error: error.response?.data?.error || 'Request failed',
+        message: error.response?.data?.message || 'An error occurred'
+      };
+      throw cleanError;
     }
   }
 
@@ -260,7 +279,12 @@ class AuthService {
       });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      // Create clean error without axios details
+      const cleanError = {
+        error: error.response?.data?.error || 'Request failed',
+        message: error.response?.data?.message || 'An error occurred'
+      };
+      throw cleanError;
     }
   }
 

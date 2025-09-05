@@ -160,30 +160,70 @@ class AuthService {
     );
   }
 
-  async signup(email, password, name) {
-    try {
-      loggingService.logUserActivity('SIGNUP_ATTEMPT', { 
-        email: email.substring(0, 3) + '***@' + email.split('@')[1],
-        name: name.substring(0, 1) + '***'
-      });
-      
-      const response = await axios.post(API_ENDPOINTS.SIGNUP, {
+// authService.js - Updated signup method with reCAPTCHA support
+
+async signup(email, password, name, recaptchaToken) {
+  try {
+    loggingService.logUserActivity('SIGNUP_ATTEMPT', { 
+      email: email.substring(0, 3) + '***@' + email.split('@')[1],
+      name: name.substring(0, 1) + '***',
+      hasRecaptcha: !!recaptchaToken
+    });
+    
+    // Log the request details for debugging
+    console.log('Signup request details:', {
+      endpoint: API_ENDPOINTS.SIGNUP,
+      hasToken: !!recaptchaToken,
+      tokenLength: recaptchaToken ? recaptchaToken.length : 0,
+      payload: {
         email,
-        password,
         name,
-      });
-      
-      // Log successful signup
-      loggingService.logSignup(true, email);
-      
-      return response.data;
-    } catch (error) {
-      // Log failed signup
-      loggingService.logSignup(false, email, error.response?.data || error);
-      
-      throw error.response?.data || error;
+        hasPassword: !!password,
+        hasRecaptchaToken: !!recaptchaToken
+      }
+    });
+    
+    const response = await axios.post(API_ENDPOINTS.SIGNUP, {
+      email,
+      password,
+      name,
+      recaptchaToken, // Include the reCAPTCHA token
+    }, {
+      withCredentials: true, // Include cookies
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    // Log successful signup
+    loggingService.logSignup(true, email);
+    
+    return response.data;
+  } catch (error) {
+    // Enhanced error logging for debugging
+    console.error('Signup error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      message: error.message
+    });
+    
+    // Log failed signup
+    loggingService.logSignup(false, email, error.response?.data || error);
+    
+    // Check for specific error types
+    if (error.response?.status === 403) {
+      // 403 Forbidden - likely CORS or reCAPTCHA issue
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Access denied. This might be a reCAPTCHA validation issue.';
+      throw { error: errorMessage, status: 403 };
     }
+    
+    throw error.response?.data || error;
   }
+}
 
   async verify(email, code) {
     try {

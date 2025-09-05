@@ -10,14 +10,37 @@ const initialState = {
   signinError: null, // Persistent signin error for OAuth callbacks and form errors
 };
 
+// authSlice.js - Updated signup thunk with reCAPTCHA support
+
 export const signup = createAsyncThunk(
   'auth/signup',
-  async ({ email, password, name }, { rejectWithValue }) => {
+  async ({ email, password, name, recaptchaToken }, { rejectWithValue }) => {
     try {
-      const response = await authService.signup(email, password, name);
+      // Validate that we have a reCAPTCHA token
+      if (!recaptchaToken) {
+        console.error('No reCAPTCHA token provided to signup thunk');
+        return rejectWithValue('reCAPTCHA verification is required');
+      }
+      
+      console.log('Signup thunk called with:', {
+        email,
+        name,
+        hasPassword: !!password,
+        hasRecaptchaToken: !!recaptchaToken,
+        tokenLength: recaptchaToken.length
+      });
+      
+      const response = await authService.signup(email, password, name, recaptchaToken);
       return { ...response, email };
     } catch (error) {
-      return rejectWithValue(error.error || error.message || 'Sign up failed');
+      console.error('Signup thunk error:', error);
+      
+      // Handle different error formats
+      const errorMessage = error.error || 
+                          error.message || 
+                          (error.status === 403 ? 'Access denied. Please check reCAPTCHA settings.' : 'Sign up failed');
+      
+      return rejectWithValue(errorMessage);
     }
   }
 );

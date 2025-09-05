@@ -17,6 +17,11 @@ const useRecaptcha = () => {
 
       // Check if reCAPTCHA is properly loaded
       console.log('window.grecaptcha:', window.grecaptcha ? 'Available' : 'Not available');
+      if (window.grecaptcha) {
+        console.log('grecaptcha methods:', Object.keys(window.grecaptcha));
+        console.log('grecaptcha.execute available:', typeof window.grecaptcha.execute);
+      }
+      
       if (!window.grecaptcha) {
         console.warn('reCAPTCHA not loaded - continuing without token');
         return null;
@@ -28,15 +33,30 @@ const useRecaptcha = () => {
         // Add a small delay to ensure reCAPTCHA is fully ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Try executing with the action
+        // First try the React wrapper
         let token = await executeRecaptcha(action);
-        console.log('reCAPTCHA token (with action):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+        console.log('reCAPTCHA token (React wrapper):', token ? 'Yes (length: ' + token.length + ')' : 'No');
         
-        // If no token with action, try without action parameter
-        if (!token) {
-          console.log('Retrying reCAPTCHA without action...');
-          token = await executeRecaptcha();
-          console.log('reCAPTCHA token (no action):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+        // If React wrapper fails, try direct grecaptcha API
+        if (!token && window.grecaptcha && window.grecaptcha.execute) {
+          console.log('Trying direct grecaptcha API...');
+          
+          const siteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+          if (siteKey) {
+            try {
+              token = await window.grecaptcha.execute(siteKey, { action });
+              console.log('reCAPTCHA token (direct API):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+            } catch (directError) {
+              console.log('Direct API error:', directError);
+              // Try without action as fallback
+              try {
+                token = await window.grecaptcha.execute(siteKey);
+                console.log('reCAPTCHA token (direct API, no action):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+              } catch (fallbackError) {
+                console.log('Direct API fallback error:', fallbackError);
+              }
+            }
+          }
         }
         
         if (!token) {

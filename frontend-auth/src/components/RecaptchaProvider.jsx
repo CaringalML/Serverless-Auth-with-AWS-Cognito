@@ -17,11 +17,12 @@ const RecaptchaProvider = ({ children }) => {
     <GoogleReCaptchaProvider
       reCaptchaKey={reCaptchaSiteKey}
       scriptProps={{
-        async: true,
-        defer: true,
+        async: false,  // Changed to false for more reliable loading
+        defer: false,  // Changed to false for more reliable loading
         appendTo: 'head',
         nonce: undefined,
       }}
+      useRecaptchaNet={false}  // Use google.com instead of recaptcha.net
     >
       {children}
     </GoogleReCaptchaProvider>

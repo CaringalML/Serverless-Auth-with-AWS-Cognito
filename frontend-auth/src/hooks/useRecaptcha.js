@@ -24,8 +24,20 @@ const useRecaptcha = () => {
 
       try {
         console.log('Executing reCAPTCHA...');
-        const token = await executeRecaptcha(action);
-        console.log('reCAPTCHA token received:', token ? 'Yes (length: ' + token.length + ')' : 'No');
+        
+        // Add a small delay to ensure reCAPTCHA is fully ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Try executing with the action
+        let token = await executeRecaptcha(action);
+        console.log('reCAPTCHA token (with action):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+        
+        // If no token with action, try without action parameter
+        if (!token) {
+          console.log('Retrying reCAPTCHA without action...');
+          token = await executeRecaptcha();
+          console.log('reCAPTCHA token (no action):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+        }
         
         if (!token) {
           console.warn('reCAPTCHA token is empty - continuing without token');

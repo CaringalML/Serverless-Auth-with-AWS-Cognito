@@ -20,7 +20,7 @@ const Dashboard = () => {
           const info = await authService.getUserInfo();
           setUserInfo(info);
         } catch (error) {
-          console.error('Failed to load user info:', error);
+          // Error loading user info
         } finally {
           setLoadingUserInfo(false);
         }
@@ -38,7 +38,7 @@ const Dashboard = () => {
       dispatch(logout());
       navigate('/signin');
     } catch (error) {
-      console.error('Logout failed:', error);
+      // Logout failed
       // Still redirect even if logout API call fails
       dispatch(logout());
       navigate('/signin');

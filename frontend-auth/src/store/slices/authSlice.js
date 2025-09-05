@@ -52,7 +52,7 @@ export const signin = createAsyncThunk(
           return { ...response, user: userInfo };
         } catch (userInfoError) {
           // If getUserInfo fails, still return successful signin but without user data
-          console.warn('Failed to get user info after signin:', userInfoError);
+          // Failed to get user info after signin
           return response;
         }
       }

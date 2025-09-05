@@ -175,7 +175,7 @@ class LoggingService {
     // Disabled audit logging - no longer sending to backend
     // Only log to console in development for debugging
     if (process.env.NODE_ENV === 'development') {
-      console.log('📋 Debug Log:', logEntry);
+      // Debug logging disabled for production
     }
     // Do not send logs to backend API
   }

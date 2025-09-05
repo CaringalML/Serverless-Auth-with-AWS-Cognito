@@ -388,7 +388,7 @@ class AuthService {
       const isAuth = await this.isAuthenticated();
       return isAuth;
     } catch (error) {
-      console.error('Failed to check authentication:', error);
+      // Failed to check authentication
       return false;
     }
   }

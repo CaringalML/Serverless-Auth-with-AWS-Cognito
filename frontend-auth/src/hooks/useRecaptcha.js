@@ -30,8 +30,8 @@ const useRecaptcha = () => {
       try {
         console.log('Executing reCAPTCHA...');
         
-        // Add a small delay to ensure reCAPTCHA is fully ready
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Add a longer delay to ensure reCAPTCHA is fully ready
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // First try the React wrapper
         let token = await executeRecaptcha(action);
@@ -44,17 +44,35 @@ const useRecaptcha = () => {
           const siteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
           if (siteKey) {
             try {
-              token = await window.grecaptcha.execute(siteKey, { action });
-              console.log('reCAPTCHA token (direct API):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+              // Use grecaptcha.ready to ensure reCAPTCHA is fully loaded
+              token = await new Promise((resolve, reject) => {
+                window.grecaptcha.ready(() => {
+                  console.log('grecaptcha is ready');
+                  window.grecaptcha.execute(siteKey, { action })
+                    .then((token) => {
+                      console.log('Token from ready callback:', token ? 'Yes (length: ' + token.length + ')' : 'No');
+                      resolve(token);
+                    })
+                    .catch((error) => {
+                      console.log('Error in ready callback:', error);
+                      // Try without action as fallback
+                      window.grecaptcha.execute(siteKey)
+                        .then((fallbackToken) => {
+                          console.log('Fallback token:', fallbackToken ? 'Yes (length: ' + fallbackToken.length + ')' : 'No');
+                          resolve(fallbackToken);
+                        })
+                        .catch((fallbackError) => {
+                          console.log('Fallback error:', fallbackError);
+                          resolve(null);
+                        });
+                    });
+                });
+              });
+              
+              console.log('reCAPTCHA token (direct API with ready):', token ? 'Yes (length: ' + token.length + ')' : 'No');
+              
             } catch (directError) {
               console.log('Direct API error:', directError);
-              // Try without action as fallback
-              try {
-                token = await window.grecaptcha.execute(siteKey);
-                console.log('reCAPTCHA token (direct API, no action):', token ? 'Yes (length: ' + token.length + ')' : 'No');
-              } catch (fallbackError) {
-                console.log('Direct API fallback error:', fallbackError);
-              }
             }
           }
         }

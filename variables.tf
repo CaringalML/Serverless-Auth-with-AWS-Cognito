@@ -342,3 +342,26 @@ variable "google_client_secret" {
   type        = string
   sensitive   = true
 }
+
+# Google reCAPTCHA v3 Configuration Variables
+variable "recaptcha_site_key" {
+  description = "Google reCAPTCHA v3 Site Key (public key for frontend)"
+  type        = string
+  sensitive   = false
+}
+
+variable "recaptcha_secret_key" {
+  description = "Google reCAPTCHA v3 Secret Key (private key for backend verification)"
+  type        = string
+  sensitive   = true
+}
+
+variable "recaptcha_threshold" {
+  description = "reCAPTCHA v3 score threshold (0.0 to 1.0) - higher is more strict"
+  type        = number
+  default     = 0.5
+  validation {
+    condition     = var.recaptcha_threshold >= 0.0 && var.recaptcha_threshold <= 1.0
+    error_message = "reCAPTCHA threshold must be between 0.0 and 1.0"
+  }
+}

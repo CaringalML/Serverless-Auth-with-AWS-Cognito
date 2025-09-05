@@ -9,6 +9,7 @@ import {
   validatePasswordMatch,
   getPasswordStrength 
 } from '../utils/validation';
+import useRecaptcha from '../hooks/useRecaptcha';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -39,6 +40,7 @@ const SignUp = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
+  const { getRecaptchaToken } = useRecaptcha();
 
   useEffect(() => {
     // Validate fields on change if they've been touched
@@ -97,10 +99,14 @@ const SignUp = () => {
       return;
     }
 
+    // Get reCAPTCHA token
+    const recaptchaToken = await getRecaptchaToken('signup');
+    
     const result = await dispatch(signup({
       email: formData.email,
       password: formData.password,
       name: formData.name,
+      recaptchaToken: recaptchaToken,
     }));
 
     if (signup.fulfilled.match(result)) {

@@ -6,6 +6,9 @@ const useRecaptcha = () => {
 
   const getRecaptchaToken = useCallback(
     async (action = 'default') => {
+      console.log('getRecaptchaToken called with action:', action);
+      console.log('executeRecaptcha function:', executeRecaptcha ? 'Available' : 'Not available');
+      
       // If reCAPTCHA is not configured, return null
       if (!executeRecaptcha) {
         console.log('reCAPTCHA not available - continuing without token');
@@ -13,13 +16,16 @@ const useRecaptcha = () => {
       }
 
       // Check if reCAPTCHA is properly loaded
+      console.log('window.grecaptcha:', window.grecaptcha ? 'Available' : 'Not available');
       if (!window.grecaptcha) {
         console.warn('reCAPTCHA not loaded - continuing without token');
         return null;
       }
 
       try {
+        console.log('Executing reCAPTCHA...');
         const token = await executeRecaptcha(action);
+        console.log('reCAPTCHA token received:', token ? 'Yes (length: ' + token.length + ')' : 'No');
         
         if (!token) {
           console.warn('reCAPTCHA token is empty - continuing without token');

@@ -5,6 +5,8 @@ const RecaptchaProvider = ({ children }) => {
   // Get the site key from environment variable
   const reCaptchaSiteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
 
+  console.log('reCAPTCHA Site Key:', reCaptchaSiteKey ? 'Present' : 'Missing');
+
   // If reCAPTCHA is not configured, just render children without the provider
   if (!reCaptchaSiteKey) {
     console.log('reCAPTCHA not configured - running without bot protection');

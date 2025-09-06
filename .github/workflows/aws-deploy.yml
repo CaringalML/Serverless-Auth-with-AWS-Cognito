@@ -2,9 +2,9 @@ name: Fullstack Serverless CI/CD
 
 on:
   push:
-    branches: ["google-OAuth"]
+    branches: ["captcha"]
   pull_request:
-    branches: ["google-OAuth"]
+    branches: ["captcha"]
 
 env:
   AWS_REGION: ap-southeast-2

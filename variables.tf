@@ -356,3 +356,36 @@ variable "turnstile_secret_key" {
   sensitive   = true
 }
 
+# KMS Encryption Configuration Variables
+variable "kms_encryption_enabled" {
+  description = "Enable KMS encryption for JWT tokens (military-grade AES-256)"
+  type        = bool
+  default     = true
+}
+
+variable "kms_rollout_percentage" {
+  description = "Percentage of users to enable KMS for gradual rollout (0-100)"
+  type        = number
+  default     = 100
+  validation {
+    condition     = var.kms_rollout_percentage >= 0 && var.kms_rollout_percentage <= 100
+    error_message = "KMS rollout percentage must be between 0 and 100."
+  }
+}
+
+variable "kms_key_deletion_window" {
+  description = "Number of days before KMS key is deleted after removal"
+  type        = number
+  default     = 10
+  validation {
+    condition     = var.kms_key_deletion_window >= 7 && var.kms_key_deletion_window <= 30
+    error_message = "KMS key deletion window must be between 7 and 30 days."
+  }
+}
+
+variable "kms_enable_key_rotation" {
+  description = "Enable automatic annual rotation of KMS key for enhanced security"
+  type        = bool
+  default     = true
+}
+

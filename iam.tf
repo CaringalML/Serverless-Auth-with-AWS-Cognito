@@ -176,6 +176,42 @@ resource "aws_iam_role_policy_attachment" "lambda_cloudwatch_logs" {
   policy_arn = aws_iam_policy.lambda_cloudwatch_logs.arn
 }
 
+# KMS Policy for Token Encryption
+resource "aws_iam_policy" "lambda_kms_access" {
+  name        = "${var.project_name}-${var.environment}-lambda-kms-access"
+  path        = "/"
+  description = "Policy for Lambda functions to use KMS for token encryption"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:GenerateDataKey",
+          "kms:DescribeKey",
+          "kms:CreateGrant",
+          "kms:RetireGrant"
+        ]
+        Resource = aws_kms_key.auth_tokens.arn
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+# Attach KMS Policy to Lambda Role
+resource "aws_iam_role_policy_attachment" "lambda_kms_access" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_kms_access.arn
+}
+
 # Output IAM Role ARN for reference
 output "lambda_role_arn" {
   description = "ARN of the Lambda execution role"

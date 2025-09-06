@@ -5,7 +5,7 @@ data "archive_file" "lambda_layer" {
   output_path = "${path.module}/lambda_functions/shared/lambda_layer.zip"
 
   # This ensures the archive is only recreated when source files change
-  excludes = ["__pycache__", "*.pyc"]
+  excludes = ["__pycache__", "*.pyc", "*.pyo", ".DS_Store", "Thumbs.db", "*.zip"]
 }
 
 resource "aws_lambda_layer_version" "shared" {
@@ -20,47 +20,47 @@ resource "aws_lambda_layer_version" "shared" {
 locals {
   lambda_functions = {
     signup = {
-      handler = "handler.lambda_handler"
+      handler = "signup.lambda_handler"
       timeout = 10
     }
     signin = {
-      handler = "handler.lambda_handler"
+      handler = "signin.lambda_handler"
       timeout = 10
     }
     verify = {
-      handler = "handler.lambda_handler"
+      handler = "verify.lambda_handler"
       timeout = 10
     }
     forgot_password = {
-      handler = "handler.lambda_handler"
+      handler = "forgot_password.lambda_handler"
       timeout = 10
     }
     reset_password = {
-      handler = "handler.lambda_handler"
+      handler = "reset_password.lambda_handler"
       timeout = 10
     }
     resend_verification = {
-      handler = "handler.lambda_handler"
+      handler = "resend_verification.lambda_handler"
       timeout = 10
     }
     refresh = {
-      handler = "handler.lambda_handler"
+      handler = "refresh.lambda_handler"
       timeout = 10
     }
     logout = {
-      handler = "handler.lambda_handler"
+      handler = "logout.lambda_handler"
       timeout = 10
     }
     verify_token = {
-      handler = "handler.lambda_handler"
+      handler = "verify_token.lambda_handler"
       timeout = 10
     }
     user_info = {
-      handler = "handler.lambda_handler"
+      handler = "user_info.lambda_handler"
       timeout = 10
     }
     google_auth = {
-      handler = "handler.lambda_handler"
+      handler = "google_auth.lambda_handler"
       timeout = 15
     }
   }
@@ -68,15 +68,15 @@ locals {
 
 # Custom message Lambda function for Cognito triggers
 resource "aws_lambda_function" "custom_message" {
-  filename      = "lambda_functions/custom_message/custom_message.zip"
+  filename      = data.archive_file.custom_message.output_path
   function_name = "${var.project_name}-${var.environment}-custom-message"
   role          = aws_iam_role.lambda_role.arn
-  handler       = "handler.lambda_handler"
+  handler       = "custom_message.lambda_handler"
   runtime       = "python3.12"
   timeout       = 10
   memory_size   = 128
 
-  source_code_hash = data.archive_file.custom_message_lambda.output_base64sha256
+  source_code_hash = data.archive_file.custom_message.output_base64sha256
 
   layers = [aws_lambda_layer_version.shared.arn]
 
@@ -87,8 +87,16 @@ resource "aws_lambda_function" "custom_message" {
     }
   }
 
+  # Lifecycle management for efficient updates
   lifecycle {
     prevent_destroy = false
+    create_before_destroy = false
+    ignore_changes = [
+      # Ignore changes to these fields to prevent unnecessary updates
+      last_modified,
+      qualified_arn,
+      version
+    ]
   }
 
   tags = {
@@ -98,10 +106,13 @@ resource "aws_lambda_function" "custom_message" {
 }
 
 # Archive for custom message Lambda
-data "archive_file" "custom_message_lambda" {
+data "archive_file" "custom_message" {
   type        = "zip"
-  source_dir  = "lambda_functions/custom_message"
-  output_path = "lambda_functions/custom_message/custom_message.zip"
+  source_dir  = "${path.module}/lambda_functions/custom_message"
+  output_path = "${path.module}/lambda_functions/custom_message/custom_message.zip"
+  
+  # This ensures the archive is only recreated when source files change
+  excludes = ["__pycache__", "*.pyc", "*.pyo", ".DS_Store", "Thumbs.db"]
 }
 
 # Lambda permission for Cognito to invoke custom message function
@@ -119,10 +130,10 @@ data "archive_file" "lambda_functions" {
 
   type        = "zip"
   source_dir  = "${path.module}/lambda_functions/${each.key}"
-  output_path = "${path.module}/lambda_functions/${each.key}/${each.key}_lambda.zip"
+  output_path = "${path.module}/lambda_functions/${each.key}/${each.key}.zip"
 
   # This ensures the archive is only recreated when source files change
-  excludes = ["__pycache__", "*.pyc"]
+  excludes = ["__pycache__", "*.pyc", "*.pyo", ".DS_Store", "Thumbs.db", "*.zip"]
 }
 
 
@@ -159,12 +170,28 @@ resource "aws_lambda_function" "auth_functions" {
       GOOGLE_CLIENT_ID       = var.google_client_id
       GOOGLE_CLIENT_SECRET   = var.google_client_secret
       TURNSTILE_SECRET_KEY   = var.turnstile_secret_key
+      # KMS Configuration for military-grade token encryption
+      KMS_TOKEN_KEY_ID       = aws_kms_key.auth_tokens.id
+      KMS_ENCRYPTION_ENABLED = var.kms_encryption_enabled
+      KMS_ROLLOUT_PERCENTAGE = var.kms_rollout_percentage
     }
+  }
+
+  # Lifecycle management for efficient updates
+  lifecycle {
+    create_before_destroy = false
+    ignore_changes = [
+      # Ignore changes to these fields to prevent unnecessary updates
+      last_modified,
+      qualified_arn,
+      version
+    ]
   }
 
   depends_on = [
     aws_iam_role.lambda_role,
-    data.archive_file.lambda_functions
+    data.archive_file.lambda_functions,
+    aws_lambda_layer_version.shared
   ]
 }
 

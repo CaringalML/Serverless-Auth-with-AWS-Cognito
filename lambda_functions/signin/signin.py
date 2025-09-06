@@ -2,36 +2,24 @@ import json
 import boto3
 import os
 import sys
-import base64
 from botocore.exceptions import ClientError
 from datetime import datetime, timezone
 
 sys.path.append('/opt')
-from utils import create_response, parse_body, create_cookie
+from utils import (
+    create_response, 
+    parse_body, 
+    create_cookie,
+    create_encrypted_cookie,
+    decode_token_payload,
+    should_use_kms_encryption
+)
 from turnstile import verify_turnstile
 
 cognito_client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')
 
-def decode_token_payload(token):
-    """Decode JWT token payload (second part)"""
-    try:
-        # JWT tokens have 3 parts separated by dots
-        parts = token.split('.')
-        if len(parts) != 3:
-            return None
-        
-        # Get the payload (middle part) and add padding if needed
-        payload = parts[1]
-        padding = len(payload) % 4
-        if padding:
-            payload += '=' * (4 - padding)
-            
-        decoded_bytes = base64.urlsafe_b64decode(payload)
-        decoded_str = decoded_bytes.decode('utf-8')
-        return json.loads(decoded_str)
-    except Exception:
-        return None
+# decode_token_payload is now imported from utils.py
 
 def update_user_login_record(user_info, provider='Email'):
     """Update user record in DynamoDB for regular email/password signin"""
@@ -144,6 +132,7 @@ def lambda_handler(event, context):
             
             # Decode ID token to get user info
             user_info = decode_token_payload(id_token)
+            user_id = user_info.get('sub') if user_info else None
             
             # Update user record in DynamoDB with login tracking
             if user_info:
@@ -156,20 +145,51 @@ def lambda_handler(event, context):
             else:
                 print("Warning: Could not decode ID token for database update")
             
-            # SECURE HTTPONLY COOKIES: Maximum security against XSS and CSRF
-            # - HttpOnly: Prevents JavaScript access (XSS protection)
-            # - Secure: HTTPS only transmission 
-            # - SameSite=Strict: Same-domain only (CSRF protection)
-            cookies = [
-                create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
-                create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True), 
-                create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # 30 days
-            ]
+            # DETERMINE IF KMS ENCRYPTION SHOULD BE USED
+            use_kms = should_use_kms_encryption()
             
-            # Return success with user info for immediate use
+            if use_kms:
+                print(f"KMS encryption enabled for user: {user_id}")
+                # CREATE KMS-ENCRYPTED COOKIES - MILITARY-GRADE SECURITY
+                # Double-layer protection: HttpOnly + AES-256 encryption
+                cookies = [
+                    create_encrypted_cookie(
+                        'accessToken', 
+                        access_token, 
+                        token_type='access',
+                        user_id=user_id,
+                        max_age_seconds=expires_in
+                    ),
+                    create_encrypted_cookie(
+                        'idToken', 
+                        id_token,
+                        token_type='id',
+                        user_id=user_id,
+                        max_age_seconds=expires_in
+                    ),
+                    create_encrypted_cookie(
+                        'refreshToken',
+                        refresh_token,
+                        token_type='refresh',
+                        user_id=user_id,
+                        max_age_seconds=30*24*60*60  # 30 days
+                    )
+                ]
+                print("Successfully created KMS-encrypted cookies")
+            else:
+                # STANDARD HTTPONLY COOKIES (still secure, not encrypted)
+                cookies = [
+                    create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
+                    create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True), 
+                    create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # 30 days
+                ]
+                print("Using standard httpOnly cookies (KMS not enabled)")
+            
+            # Return success with user info and encryption status
             response_data = {
                 'message': 'Sign in successful',
-                'expiresIn': expires_in
+                'expiresIn': expires_in,
+                'encryptionEnabled': use_kms  # Let frontend know if KMS is active
             }
             
             # Add user info if available

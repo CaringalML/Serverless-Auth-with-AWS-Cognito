@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 def lambda_handler(event, context):
     """
@@ -11,6 +12,7 @@ def lambda_handler(event, context):
     trigger_source = event.get('triggerSource')
     user_attributes = event.get('request', {}).get('userAttributes', {})
     project_name = "Serverless Auth"  # You can make this dynamic
+    current_year = datetime.now().year
     
     # Email verification messages
     if trigger_source == 'CustomMessage_SignUp':
@@ -43,7 +45,7 @@ def lambda_handler(event, context):
         </div>
         <div class="footer">
             <p>If you didn't create an account, please ignore this email.</p>
-            <p>© 2024 {project_name}. All rights reserved.</p>
+            <p>© {current_year} {project_name}. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -92,7 +94,7 @@ def lambda_handler(event, context):
         </div>
         <div class="footer">
             <p>For security, this code will expire in 1 hour.</p>
-            <p>© 2024 {project_name}. All rights reserved.</p>
+            <p>© {current_year} {project_name}. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -133,7 +135,7 @@ def lambda_handler(event, context):
         </div>
         <div class="footer">
             <p>Please log in within 7 days to activate your account.</p>
-            <p>© 2024 {project_name}. All rights reserved.</p>
+            <p>© {current_year} {project_name}. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -171,7 +173,7 @@ def lambda_handler(event, context):
         </div>
         <div class="footer">
             <p>If you didn't request this code, please ignore this email.</p>
-            <p>© 2024 {project_name}. All rights reserved.</p>
+            <p>© {current_year} {project_name}. All rights reserved.</p>
         </div>
     </div>
 </body>

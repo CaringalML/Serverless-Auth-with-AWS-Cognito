@@ -16,16 +16,10 @@ resource "aws_cognito_user_pool" "main" {
     email_sending_account = "COGNITO_DEFAULT"
   }
 
-  # Custom email verification template
+  # Email verification uses custom Lambda function (custom_message trigger)
+  # Templates are handled by the Lambda function in lambda_functions/custom_message/
   verification_message_template {
     default_email_option = "CONFIRM_WITH_CODE"
-    email_subject        = "Welcome to ${var.project_name} - Verify Your Account"
-    email_message_by_link = templatefile("${path.module}/templates/verification_email.html", {
-      project_name = var.project_name
-      environment  = var.environment
-    })
-    email_subject_by_link = "Welcome to ${var.project_name} - Verify Your Account"
-    email_message         = "Your verification code is {####}. Please enter this code to complete your registration."
   }
 
   # Device configuration

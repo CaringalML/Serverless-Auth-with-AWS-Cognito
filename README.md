@@ -900,7 +900,7 @@ curl https://api.yourawesome-domain.com/auth/verify-token
 
 # Part IV: Configuration & Customization
 
-## Chapter 10: Lambda Functions Reference
+## Chapter 11: Lambda Functions Reference
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Post-Deployment Verification](#chapter-9-post-deployment-verification) | [▶️ Next: Security Configuration](#chapter-11-security-configuration)
 
@@ -939,7 +939,7 @@ curl https://api.yourawesome-domain.com/auth/verify-token
 
 ---
 
-## Chapter 11: Security Configuration
+## Chapter 12: Security Configuration
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Lambda Functions Reference](#chapter-10-lambda-functions-reference) | [▶️ Next: Monitoring & Alerting](#chapter-12-monitoring--alerting)
 
@@ -988,7 +988,7 @@ const cookieConfig = {
 
 ---
 
-## Chapter 12: Monitoring & Alerting
+## Chapter 13: Monitoring & Alerting
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Security Configuration](#chapter-11-security-configuration) | [▶️ Next: Frontend Stack & Components](#chapter-13-frontend-stack--components)
 
@@ -1036,7 +1036,7 @@ const cookieConfig = {
 
 # Part V: Frontend Development
 
-## Chapter 13: Frontend Stack & Components
+## Chapter 14: Frontend Stack & Components
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Monitoring & Alerting](#chapter-12-monitoring--alerting) | [▶️ Next: State Management](#chapter-14-state-management)
 
@@ -1069,7 +1069,7 @@ const cookieConfig = {
 
 ---
 
-## Chapter 14: State Management
+## Chapter 15: State Management
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Frontend Stack & Components](#chapter-13-frontend-stack--components) | [▶️ Next: CI/CD Pipeline](#chapter-15-cicd-pipeline)
 
@@ -1098,7 +1098,7 @@ const initialState = {
 
 ---
 
-## Chapter 15: CI/CD Pipeline
+## Chapter 16: CI/CD Pipeline
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: State Management](#chapter-14-state-management) | [▶️ Next: Cost Analysis](#chapter-16-cost-analysis)
 
@@ -1152,7 +1152,7 @@ jobs:
 
 # Part VI: Operations & Maintenance
 
-## Chapter 16: Cost Analysis
+## Chapter 17: Cost Analysis
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: CI/CD Pipeline](#chapter-15-cicd-pipeline) | [▶️ Next: Common Operations](#chapter-17-common-operations)
 
@@ -1184,7 +1184,7 @@ jobs:
 
 ---
 
-## Chapter 17: Common Operations
+## Chapter 18: Common Operations
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Cost Analysis](#chapter-16-cost-analysis) | [▶️ Next: Troubleshooting Guide](#chapter-18-troubleshooting-guide)
 
@@ -1268,7 +1268,7 @@ aws dynamodb scan \
 
 ---
 
-## Chapter 18: Troubleshooting Guide
+## Chapter 19: Troubleshooting Guide
 
 > **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Common Operations](#chapter-17-common-operations) | [▶️ Next: Project Structure](#appendix-a-project-structure)
 

@@ -134,6 +134,10 @@ resource "aws_cognito_user_pool_client" "main" {
   lifecycle {
     prevent_destroy = false
   }
+
+  depends_on = [
+    aws_cognito_identity_provider.google
+  ]
 }
 
 # Google Identity Provider for Cognito

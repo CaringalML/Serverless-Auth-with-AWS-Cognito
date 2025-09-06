@@ -102,11 +102,6 @@ resource "aws_lambda_function" "custom_message" {
   lifecycle {
     prevent_destroy       = false
     create_before_destroy = false
-    ignore_changes = [
-      # Ignore changes to these fields to prevent unnecessary updates
-      qualified_arn,
-      version
-    ]
   }
 
   tags = {
@@ -214,11 +209,6 @@ resource "aws_lambda_function" "auth_functions" {
   # Lifecycle management for efficient updates
   lifecycle {
     create_before_destroy = false
-    ignore_changes = [
-      # Ignore changes to these fields to prevent unnecessary updates
-      qualified_arn,
-      version
-    ]
   }
 
   depends_on = [

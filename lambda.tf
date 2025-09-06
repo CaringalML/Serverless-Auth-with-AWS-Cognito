@@ -20,59 +20,59 @@ resource "aws_lambda_layer_version" "shared" {
 locals {
   lambda_functions = {
     signup = {
-      handler = "signup.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "signup.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     signin = {
-      handler = "signin.lambda_handler"
-      timeout = 20
-      memory_size = 512  # KMS encryption - more CPU/memory for better performance
+      handler     = "signin.lambda_handler"
+      timeout     = 20
+      memory_size = 512 # KMS encryption - more CPU/memory for better performance
     }
     verify = {
-      handler = "verify.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "verify.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     forgot_password = {
-      handler = "forgot_password.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "forgot_password.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     reset_password = {
-      handler = "reset_password.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "reset_password.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     resend_verification = {
-      handler = "resend_verification.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "resend_verification.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     refresh = {
-      handler = "refresh.lambda_handler"
-      timeout = 20
-      memory_size = 384  # KMS encryption - moderate memory for 2 tokens
+      handler     = "refresh.lambda_handler"
+      timeout     = 20
+      memory_size = 384 # KMS encryption - moderate memory for 2 tokens
     }
     logout = {
-      handler = "logout.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "logout.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     verify_token = {
-      handler = "verify_token.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "verify_token.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     user_info = {
-      handler = "user_info.lambda_handler"
-      timeout = 10
-      memory_size = 128  # No KMS encryption
+      handler     = "user_info.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # No KMS encryption
     }
     google_auth = {
-      handler = "google_auth.lambda_handler"
-      timeout = 25
-      memory_size = 512  # KMS encryption - more CPU/memory for better performance
+      handler     = "google_auth.lambda_handler"
+      timeout     = 25
+      memory_size = 512 # KMS encryption - more CPU/memory for better performance
     }
   }
 }

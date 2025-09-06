@@ -89,7 +89,7 @@ resource "aws_lambda_function" "custom_message" {
 
   # Lifecycle management for efficient updates
   lifecycle {
-    prevent_destroy = false
+    prevent_destroy       = false
     create_before_destroy = false
     ignore_changes = [
       # Ignore changes to these fields to prevent unnecessary updates
@@ -110,7 +110,7 @@ data "archive_file" "custom_message" {
   type        = "zip"
   source_dir  = "${path.module}/lambda_functions/custom_message"
   output_path = "${path.module}/lambda_functions/custom_message/custom_message.zip"
-  
+
   # This ensures the archive is only recreated when source files change
   excludes = ["__pycache__", "*.pyc", "*.pyo", ".DS_Store", "Thumbs.db"]
 }

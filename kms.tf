@@ -7,8 +7,8 @@
 resource "aws_kms_key" "auth_tokens" {
   description             = "KMS key for encrypting authentication tokens - AES-256"
   deletion_window_in_days = 10
-  enable_key_rotation     = true  # Automatic annual key rotation for forward secrecy
-  
+  enable_key_rotation     = true # Automatic annual key rotation for forward secrecy
+
   tags = {
     Name        = "${var.project_name}-${var.environment}-auth-tokens-kms"
     Environment = var.environment
@@ -59,7 +59,7 @@ resource "aws_kms_key_policy" "auth_tokens" {
         Resource = "*"
         Condition = {
           StringEquals = {
-            "kms:EncryptionContext:purpose" = "auth_token"
+            "kms:EncryptionContext:purpose"     = "auth_token"
             "kms:EncryptionContext:environment" = var.environment
           }
         }

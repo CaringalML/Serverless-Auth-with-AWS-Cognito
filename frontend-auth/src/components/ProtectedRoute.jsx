@@ -17,10 +17,10 @@ import { checkAuthAsync } from '../store/slices/authSlice';
  * - Custom domain setup enables same-origin cookie sharing
  * 
  * PAGE REFRESH HANDLING:
- * Optimized timing for KMS-encrypted httpOnly cookie availability:
- * - 700ms initial delay in ProtectedRoute for browser cookie processing
- * - 500ms additional delay in checkAuthAsync for KMS decryption
- * - Total 1200ms buffer prevents false logouts on page refresh
+ * Robust timing for KMS-encrypted httpOnly cookie availability:
+ * - 1000ms initial delay in ProtectedRoute for browser cookie processing
+ * - 800ms additional delay in checkAuthAsync for KMS decryption
+ * - Total 1800ms buffer prevents false logouts on page refresh
  * 
  * AUTHENTICATION FLOW:
  * 1. Check Redux state (fast path for authenticated users)
@@ -78,11 +78,11 @@ const ProtectedRoute = ({ children }) => {
 
     // CRITICAL: HttpOnly cookie availability timing for page refresh
     // Browser needs time to process httpOnly cookies after page reload
-    // This 700ms delay prevents false authentication failures on refresh
-    // Works with 500ms checkAuthAsync delay for 1200ms total buffer
+    // This 1000ms delay prevents false authentication failures on refresh
+    // Works with 800ms checkAuthAsync delay for 1800ms total buffer
     const timer = setTimeout(() => {
       checkAuth();
-    }, 700); // Enhanced delay for reliable KMS-encrypted cookie processing
+    }, 1000); // Extended delay for maximum KMS-encrypted cookie reliability
     
     return () => clearTimeout(timer);
   }, [dispatch, isAuthenticated, hasCheckedAuth]);

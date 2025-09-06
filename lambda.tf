@@ -141,7 +141,7 @@ resource "null_resource" "lambda_packages" {
   # Rebuild package when function code or shared code changes
   triggers = {
     function_code = filemd5("${path.module}/lambda_functions/${each.key}/${each.key}.py")
-    shared_utils  = filemd5("${path.module}/lambda_functions/shared/utils.py") 
+    shared_utils  = filemd5("${path.module}/lambda_functions/shared/utils.py")
     turnstile     = filemd5("${path.module}/lambda_functions/shared/turnstile.py")
   }
 
@@ -160,7 +160,7 @@ resource "null_resource" "lambda_packages" {
 # Use the pre-built zip files created by null_resource
 locals {
   lambda_zip_files = {
-    for key in keys(local.lambda_functions) : 
+    for key in keys(local.lambda_functions) :
     key => "${path.module}/lambda_functions/${key}/${key}.zip"
   }
 }

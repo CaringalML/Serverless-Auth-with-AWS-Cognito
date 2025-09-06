@@ -12,9 +12,9 @@ const initialState = {
 
 export const signup = createAsyncThunk(
   'auth/signup',
-  async ({ email, password, name }, { rejectWithValue }) => {
+  async ({ email, password, name, turnstileToken }, { rejectWithValue }) => {
     try {
-      const response = await authService.signup(email, password, name);
+      const response = await authService.signup(email, password, name, turnstileToken);
       return { ...response, email };
     } catch (error) {
       return rejectWithValue(error.error || error.message || 'Sign up failed');
@@ -36,9 +36,9 @@ export const verify = createAsyncThunk(
 
 export const signin = createAsyncThunk(
   'auth/signin',
-  async ({ email, password }, { rejectWithValue, dispatch }) => {
+  async ({ email, password, turnstileToken }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await authService.signin(email, password);
+      const response = await authService.signin(email, password, turnstileToken);
       
       // Check if user info is already in the response, otherwise get it via API
       if (response.user) {

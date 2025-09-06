@@ -158,6 +158,7 @@ resource "aws_lambda_function" "auth_functions" {
       FRONTEND_DOMAIN        = var.root_domain
       GOOGLE_CLIENT_ID       = var.google_client_id
       GOOGLE_CLIENT_SECRET   = var.google_client_secret
+      TURNSTILE_SECRET_KEY   = var.turnstile_secret_key
     }
   }
 

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { signup, clearError } from '../store/slices/authSlice';
 import { 
   validateEmail, 
@@ -35,6 +36,8 @@ const SignUp = () => {
   const [passwordStrength, setPasswordStrength] = useState({ strength: 0, label: '', color: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef();
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -97,10 +100,16 @@ const SignUp = () => {
       return;
     }
 
+    if (!turnstileToken) {
+      alert('Please complete the verification challenge');
+      return;
+    }
+
     const result = await dispatch(signup({
       email: formData.email,
       password: formData.password,
       name: formData.name,
+      turnstileToken: turnstileToken,
     }));
 
     if (signup.fulfilled.match(result)) {
@@ -358,6 +367,27 @@ const SignUp = () => {
                 Passwords match perfectly
               </p>
             )}
+          </div>
+
+          {/* Turnstile Widget */}
+          <div className="flex justify-center mb-4">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.REACT_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onError={() => {
+                setTurnstileToken('');
+                console.error('Turnstile verification failed');
+              }}
+              onExpire={() => {
+                setTurnstileToken('');
+                console.warn('Turnstile token expired');
+              }}
+              options={{
+                theme: 'light',
+                size: 'normal'
+              }}
+            />
           </div>
 
           <button

@@ -343,3 +343,16 @@ variable "google_client_secret" {
   sensitive   = true
 }
 
+# Cloudflare Turnstile Configuration Variables
+variable "turnstile_site_key" {
+  description = "Cloudflare Turnstile site key for frontend widget"
+  type        = string
+  sensitive   = false
+}
+
+variable "turnstile_secret_key" {
+  description = "Cloudflare Turnstile secret key for backend verification"
+  type        = string
+  sensitive   = true
+}
+

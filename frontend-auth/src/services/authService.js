@@ -150,7 +150,7 @@ class AuthService {
     );
   }
 
-  async signup(email, password, name) {
+  async signup(email, password, name, turnstileToken) {
     try {
       loggingService.logUserActivity('SIGNUP_ATTEMPT', { 
         email: email.substring(0, 3) + '***@' + email.split('@')[1],
@@ -161,6 +161,7 @@ class AuthService {
         email,
         password,
         name,
+        turnstileToken,
       });
       
       // Log successful signup
@@ -192,13 +193,14 @@ class AuthService {
     }
   }
 
-  async signin(email, password) {
+  async signin(email, password, turnstileToken) {
     try {
       loggingService.logUserActivity('SIGNIN_ATTEMPT', { email: email.substring(0, 3) + '***@' + email.split('@')[1] });
       
       const response = await axios.post(API_ENDPOINTS.SIGNIN, {
         email,
         password,
+        turnstileToken,
       }, {
         withCredentials: true  // Ensure cookies are included
       });

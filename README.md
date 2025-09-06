@@ -21,27 +21,28 @@
 ### **Part II: Prerequisites & Setup**
 - [**Chapter 4: Domain Prerequisites (CRITICAL)**](#chapter-4-domain-prerequisites-critical)
 - [**Chapter 5: Google OAuth Configuration**](#chapter-5-google-oauth-configuration)
-- [**Chapter 6: AWS Environment Setup**](#chapter-6-aws-environment-setup)
+- [**Chapter 6: Cloudflare Turnstile Setup**](#chapter-6-cloudflare-turnstile-setup)
+- [**Chapter 7: AWS Environment Setup**](#chapter-7-aws-environment-setup)
 
 ### **Part III: Deployment Guide**
-- [**Chapter 7: Infrastructure Deployment**](#chapter-7-infrastructure-deployment)
-- [**Chapter 8: Frontend Deployment**](#chapter-8-frontend-deployment)
-- [**Chapter 9: Post-Deployment Verification**](#chapter-9-post-deployment-verification)
+- [**Chapter 8: Infrastructure Deployment**](#chapter-8-infrastructure-deployment)
+- [**Chapter 9: Frontend Deployment**](#chapter-9-frontend-deployment)
+- [**Chapter 10: Post-Deployment Verification**](#chapter-10-post-deployment-verification)
 
 ### **Part IV: Configuration & Customization**
-- [**Chapter 10: Lambda Functions Reference**](#chapter-10-lambda-functions-reference)
-- [**Chapter 11: Security Configuration**](#chapter-11-security-configuration)
-- [**Chapter 12: Monitoring & Alerting**](#chapter-12-monitoring--alerting)
+- [**Chapter 11: Lambda Functions Reference**](#chapter-11-lambda-functions-reference)
+- [**Chapter 12: Security Configuration**](#chapter-12-security-configuration)
+- [**Chapter 13: Monitoring & Alerting**](#chapter-13-monitoring--alerting)
 
 ### **Part V: Frontend Development**
-- [**Chapter 13: Frontend Stack & Components**](#chapter-13-frontend-stack--components)
-- [**Chapter 14: State Management**](#chapter-14-state-management)
-- [**Chapter 15: CI/CD Pipeline**](#chapter-15-cicd-pipeline)
+- [**Chapter 14: Frontend Stack & Components**](#chapter-14-frontend-stack--components)
+- [**Chapter 15: State Management**](#chapter-15-state-management)
+- [**Chapter 16: CI/CD Pipeline**](#chapter-16-cicd-pipeline)
 
 ### **Part VI: Operations & Maintenance**
-- [**Chapter 16: Cost Analysis**](#chapter-16-cost-analysis)
-- [**Chapter 17: Common Operations**](#chapter-17-common-operations)
-- [**Chapter 18: Troubleshooting Guide**](#chapter-18-troubleshooting-guide)
+- [**Chapter 17: Cost Analysis**](#chapter-17-cost-analysis)
+- [**Chapter 18: Common Operations**](#chapter-18-common-operations)
+- [**Chapter 19: Troubleshooting Guide**](#chapter-19-troubleshooting-guide)
 
 ### **Part VII: Appendices**
 - [**Appendix A: Project Structure**](#appendix-a-project-structure)
@@ -70,6 +71,7 @@
 🔒 **HttpOnly Cookies** - Tokens never exposed to JavaScript  
 🛡️ **CSRF Protection** - SameSite=Strict cookies  
 🚦 **Rate Limiting** - Per-endpoint throttling  
+🤖 **Bot Protection** - Cloudflare Turnstile CAPTCHA  
 🔑 **Secure Passwords** - Cryptographically random for OAuth users  
 📊 **Security Monitoring** - CloudWatch dashboards & alarms  
 🔐 **Token Security** - Access (1hr), Refresh (30 days)  
@@ -259,11 +261,31 @@ SameSite: Strict   // CSRF Protection
 Domain: .filodelight.online  // Shared across subdomains
 ```
 
-### 3.3 Security Grade: A+
+### 3.3 Cloudflare Turnstile Bot Protection
+Protects authentication endpoints from automated attacks:
+
+**Protected Endpoints:**
+- `/auth/signup` - Prevents bot registrations
+- `/auth/signin` - Prevents credential stuffing
+
+**Configuration Steps:**
+1. Get Turnstile keys from [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Add to `terraform.tfvars`:
+   ```hcl
+   turnstile_site_key   = "0x4AAAAAAAA..."
+   turnstile_secret_key = "0x4AAAAAAAA..."
+   ```
+3. Add to frontend `.env`:
+   ```bash
+   REACT_APP_TURNSTILE_SITE_KEY=0x4AAAAAAAA...
+   ```
+
+### 3.4 Security Grade: A+
 ✅ **Perfect httpOnly cookie implementation** for all tokens  
 ✅ **Zero localStorage/sessionStorage usage** anywhere in the codebase  
 ✅ **Memory-only error state management** via Redux  
-✅ **Complete XSS immunity** - no client-side storage of sensitive data
+✅ **Complete XSS immunity** - no client-side storage of sensitive data  
+✅ **Bot protection** via Cloudflare Turnstile
 
 ---
 
@@ -432,23 +454,83 @@ root_domain = "yourawesome-domain.com"
 
 ---
 
-## Chapter 6: AWS Environment Setup
+## Chapter 6: Cloudflare Turnstile Setup
 
-> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Google OAuth Configuration](#chapter-5-google-oauth-configuration) | [▶️ Next: Infrastructure Deployment](#chapter-7-infrastructure-deployment)
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Google OAuth Configuration](#chapter-5-google-oauth-configuration) | [▶️ Next: AWS Environment Setup](#chapter-7-aws-environment-setup)
 
-### 6.1 Prerequisites
+### 6.1 Overview
+Cloudflare Turnstile provides privacy-focused bot protection for your authentication endpoints, replacing traditional CAPTCHAs with a better user experience.
+
+### 6.2 Get Turnstile Keys
+
+1. **Go to Cloudflare Dashboard**:
+   - Navigate to [Cloudflare Dashboard](https://dash.cloudflare.com/)
+   - Select **Turnstile** from the sidebar
+
+2. **Create a New Site**:
+   - Click **"Add Site"**
+   - Configure your site:
+     ```
+     Site Name: Your Application Name
+     Domain: 
+       - yourawesome-domain.com (production)
+       - localhost (development)
+     Widget Mode: Managed (recommended)
+     ```
+   - Click **Create**
+
+3. **Copy Your Keys**:
+   - **Site Key**: Public key for frontend (visible to users)
+   - **Secret Key**: Private key for backend (keep secure)
+
+### 6.3 Configure Terraform Variables
+
+Add Turnstile keys to `terraform.tfvars`:
+```hcl
+# Cloudflare Turnstile Configuration
+turnstile_site_key   = "0x4AAAAAAAxxxxx..."  # Your actual site key
+turnstile_secret_key = "0x4AAAAAAAxxxxx..."  # Your actual secret key
+```
+
+### 6.4 Configure Frontend Environment
+
+Create or update `frontend-auth/.env`:
+```bash
+# Cloudflare Turnstile
+REACT_APP_TURNSTILE_SITE_KEY=0x4AAAAAAAxxxxx...  # Your actual site key
+```
+
+### 6.5 Testing Keys
+
+For development/testing, use these special keys:
+
+**Always Pass:**
+- Site Key: `1x00000000000000000000AA`
+- Secret Key: `1x0000000000000000000000000000000AA`
+
+**Always Fail:**
+- Site Key: `2x00000000000000000000AB`
+- Secret Key: `2x0000000000000000000000000000000AA`
+
+---
+
+## Chapter 7: AWS Environment Setup
+
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Cloudflare Turnstile Setup](#chapter-6-cloudflare-turnstile-setup) | [▶️ Next: Infrastructure Deployment](#chapter-8-infrastructure-deployment)
+
+### 7.1 Prerequisites
 - AWS Account with programmatic access
 - Terraform >= 1.5
 - Node.js >= 18
 - Python >= 3.12 (for local Lambda development)
 
-### 6.2 Clone Repository
+### 7.2 Clone Repository
 ```bash
 git clone https://github.com/CaringalML/Serverless-Auth-with-AWS-Cognito.git
 cd Serverless-Auth-with-AWS-Cognito
 ```
 
-### 6.3 AWS Credentials Setup
+### 7.3 AWS Credentials Setup
 ```bash
 # Configure AWS CLI
 aws configure
@@ -463,21 +545,21 @@ export AWS_DEFAULT_REGION="ap-southeast-2"
 
 # Part III: Deployment Guide
 
-## Chapter 7: Infrastructure Deployment
+## Chapter 8: Infrastructure Deployment
 
-> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: AWS Environment Setup](#chapter-6-aws-environment-setup) | [▶️ Next: Frontend Deployment](#chapter-8-frontend-deployment)
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: AWS Environment Setup](#chapter-7-aws-environment-setup) | [▶️ Next: Frontend Deployment](#chapter-9-frontend-deployment)
 
-### 7.1 Terraform Initialization
+### 8.1 Terraform Initialization
 ```bash
 terraform init
 ```
 
-### 7.2 Plan Review
+### 8.2 Plan Review
 ```bash
 terraform plan
 ```
 
-### 7.3 Deploy Infrastructure
+### 8.3 Deploy Infrastructure
 ```bash
 terraform apply
 ```
@@ -496,9 +578,9 @@ terraform apply
 
 ---
 
-## Chapter 8: Frontend Deployment
+## Chapter 9: Frontend Deployment
 
-> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Infrastructure Deployment](#chapter-7-infrastructure-deployment) | [▶️ Next: Post-Deployment Verification](#chapter-9-post-deployment-verification)
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Infrastructure Deployment](#chapter-8-infrastructure-deployment) | [▶️ Next: Post-Deployment Verification](#chapter-10-post-deployment-verification)
 
 ### 8.1 Build React Application
 ```bash
@@ -527,9 +609,9 @@ aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
 
 ---
 
-## Chapter 9: Post-Deployment Verification
+## Chapter 10: Post-Deployment Verification
 
-> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Frontend Deployment](#chapter-8-frontend-deployment) | [▶️ Next: Lambda Functions Reference](#chapter-10-lambda-functions-reference)
+> **Navigation:** [🏠 Home](#-table-of-contents) | [◀️ Previous: Frontend Deployment](#chapter-9-frontend-deployment) | [▶️ Next: Lambda Functions Reference](#chapter-11-lambda-functions-reference)
 
 ### 9.1 DNS Verification
 ```bash

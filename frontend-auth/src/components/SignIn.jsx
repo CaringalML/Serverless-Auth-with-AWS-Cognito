@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { signin, clearError, clearSigninError, setSigninError } from '../store/slices/authSlice';
 import { validateEmail } from '../utils/validation';
 
@@ -24,6 +25,8 @@ const SignIn = () => {
   // Separate loading states for different signin methods
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef();
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -96,12 +99,18 @@ const SignIn = () => {
       return;
     }
     
+    if (!turnstileToken) {
+      alert('Please complete the verification challenge');
+      return;
+    }
+
     // Set local loading state for regular signin
     setIsSigningIn(true);
     
     const result = await dispatch(signin({
       email: formData.email,
       password: formData.password,
+      turnstileToken: turnstileToken,
     }));
 
     // Clear local loading state
@@ -307,6 +316,27 @@ const SignIn = () => {
               </span>
               <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-500 transition-all duration-300 group-hover:w-full"></div>
             </Link>
+          </div>
+
+          {/* Turnstile Widget */}
+          <div className="flex justify-center my-6">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.REACT_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onError={() => {
+                setTurnstileToken('');
+                console.error('Turnstile verification failed');
+              }}
+              onExpire={() => {
+                setTurnstileToken('');
+                console.warn('Turnstile token expired');
+              }}
+              options={{
+                theme: 'light',
+                size: 'normal'
+              }}
+            />
           </div>
 
           <button

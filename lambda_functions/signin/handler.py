@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 sys.path.append('/opt')
 from utils import create_response, parse_body, create_cookie
+from turnstile import verify_turnstile
 
 cognito_client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')
@@ -98,11 +99,28 @@ def lambda_handler(event, context):
         
         email = body.get('email')
         password = body.get('password')
-        
+        turnstile_token = body.get('turnstileToken')
         
         if not all([email, password]):
             return create_response(400, {
                 'error': 'Missing required fields: email and password'
+            })
+        
+        # Verify Turnstile token
+        if not turnstile_token:
+            return create_response(400, {
+                'error': 'Turnstile verification required'
+            })
+        
+        # Get client IP from API Gateway event
+        client_ip = None
+        if event.get('requestContext', {}).get('identity', {}).get('sourceIp'):
+            client_ip = event['requestContext']['identity']['sourceIp']
+        
+        is_valid, error_message = verify_turnstile(turnstile_token, client_ip)
+        if not is_valid:
+            return create_response(400, {
+                'error': error_message or 'Turnstile verification failed'
             })
         
         client_id = os.environ['COGNITO_CLIENT_ID']

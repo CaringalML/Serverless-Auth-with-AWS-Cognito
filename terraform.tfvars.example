@@ -5,6 +5,10 @@
 google_client_id     = "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com"
 google_client_secret = "GOCSPX-aBcDeFgHiJkLmNoPqRsTuVwXyZ"
 
+# Cloudflare Turnstile Credentials (from Cloudflare Dashboard)
+turnstile_site_key   = "0x4AAAAAAAxxxxxxxxxxxxxxxx"
+turnstile_secret_key = "0x4AAAAAAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
 # Alert Email Addresses (for CloudWatch alerts)
 security_alert_email = "your-email@example.com"
 system_alert_email   = "your-email@example.com"

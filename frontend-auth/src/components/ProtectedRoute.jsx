@@ -55,10 +55,12 @@ const ProtectedRoute = ({ children }) => {
     
     const checkAuth = async () => {
       try {
+        console.log('[ProtectedRoute] Starting auth check, isAuthenticated:', isAuthenticated);
         setHasCheckedAuth(true);
         
         // First check if we already have auth state from signin
         if (isAuthenticated) {
+          console.log('[ProtectedRoute] Already authenticated from Redux state');
           setAuthCheckComplete(true);
           setIsInitializing(false);
           return;
@@ -66,10 +68,13 @@ const ProtectedRoute = ({ children }) => {
         
         // If not authenticated in Redux, try to check with backend
         // This happens on page refresh when Redux state is lost
+        console.log('[ProtectedRoute] Not authenticated in Redux, checking with backend...');
         await dispatch(checkAuthAsync()).unwrap();
+        console.log('[ProtectedRoute] Backend auth check successful');
       } catch (error) {
         // On auth check failure, assume not authenticated
         // This will redirect to signin page
+        console.log('[ProtectedRoute] Backend auth check failed:', error);
       } finally {
         setAuthCheckComplete(true);
         setIsInitializing(false);

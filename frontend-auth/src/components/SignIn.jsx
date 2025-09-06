@@ -119,10 +119,10 @@ const SignIn = () => {
     if (signin.fulfilled.match(result)) {
       // Signin error is automatically cleared by Redux on successful signin
       
-      // Extended delay to ensure KMS-encrypted cookies are fully processed before navigation
+      // Optimized delay to ensure KMS-encrypted cookies are fully processed before navigation
       setTimeout(() => {
         navigate('/dashboard');
-      }, 1500);
+      }, 500);
     }
     // Signin error is automatically set by Redux on signin rejection
   };

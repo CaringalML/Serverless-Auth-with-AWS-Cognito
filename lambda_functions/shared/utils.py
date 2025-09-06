@@ -136,12 +136,11 @@ class KMSTokenEncryption:
         context = {
             'purpose': 'auth_token',
             'environment': self.environment,
-            'token_type': token_type,
-            'timestamp': str(int(time.time()))
+            'token_type': token_type
         }
         
-        if user_id:
-            context['user_id'] = user_id
+        # NOTE: We don't include user_id in encryption context because it's not 
+        # available during decryption (chicken-and-egg problem)
         
         return context
     
@@ -199,15 +198,13 @@ class KMSTokenEncryption:
             # Try to decode as base64 - if it fails, it's not encrypted
             try:
                 ciphertext = base64.b64decode(encrypted_token)
-            except:
+            except Exception as decode_error:
                 # Not base64 encoded, likely an unencrypted token
+                logger.warning(f"Base64 decode failed: {decode_error}, treating as unencrypted token")
                 return encrypted_token
             
-            encryption_context = {
-                'purpose': 'auth_token',
-                'environment': self.environment,
-                'token_type': expected_token_type
-            }
+            # Use the same encryption context creation method for consistency
+            encryption_context = self.create_encryption_context(expected_token_type)
             
             logger.info(f"Attempting to decrypt {expected_token_type} token")
             

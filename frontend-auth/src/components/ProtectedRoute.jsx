@@ -83,11 +83,11 @@ const ProtectedRoute = ({ children }) => {
 
     // CRITICAL: HttpOnly cookie availability timing for page refresh
     // Browser needs time to process httpOnly cookies after page reload
-    // Extended delay for KMS encryption processing time
+    // Optimized delay for KMS encryption processing time
     // This delay prevents false authentication failures that cause unwanted logouts
     const timer = setTimeout(() => {
       checkAuth();
-    }, 1200); // Extended timing for KMS-encrypted cookie processing
+    }, 500); // Optimized timing for KMS-encrypted cookie processing
     
     return () => clearTimeout(timer);
   }, [dispatch, isAuthenticated, hasCheckedAuth]);

@@ -112,9 +112,9 @@ export const checkAuthAsync = createAsyncThunk(
     try {
       // CRITICAL: Wait for httpOnly cookies to be available after page refresh
       // Browser needs time to process secure cookies before API calls
-      // Extended delay for KMS encryption processing
-      console.log('[checkAuthAsync] Waiting 800ms for KMS cookie processing...');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Optimized delay for KMS encryption processing
+      console.log('[checkAuthAsync] Waiting 300ms for KMS cookie processing...');
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       console.log('[checkAuthAsync] Checking authentication with backend...');
       const isAuth = await authService.isAuthenticated();

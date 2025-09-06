@@ -46,8 +46,8 @@ export const signin = createAsyncThunk(
       } else {
         // Try to get user info from httpOnly cookies after a small delay
         try {
-          // Wait 200ms for cookies to be processed by browser
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Wait for KMS-encrypted cookies to be processed by browser
+          await new Promise(resolve => setTimeout(resolve, 600));
           const userInfo = await authService.getUserInfo();
           return { ...response, user: userInfo };
         } catch (userInfoError) {
@@ -112,7 +112,8 @@ export const checkAuthAsync = createAsyncThunk(
     try {
       // CRITICAL: Wait for httpOnly cookies to be available after page refresh
       // Browser needs time to process secure cookies before API calls
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Extended delay for KMS encryption processing
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const isAuth = await authService.isAuthenticated();
       

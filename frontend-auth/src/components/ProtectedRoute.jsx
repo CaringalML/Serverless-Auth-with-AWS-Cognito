@@ -17,10 +17,10 @@ import { checkAuthAsync } from '../store/slices/authSlice';
  * - Custom domain setup enables same-origin cookie sharing
  * 
  * PAGE REFRESH HANDLING:
- * Critical timing solution for KMS-encrypted httpOnly cookie availability:
- * - 1200ms initial delay for browser cookie processing
- * - 800ms additional delay in auth check for KMS decryption
- * - Total 2.0s buffer prevents false logouts on page refresh with encryption
+ * Optimized timing for KMS-encrypted httpOnly cookie availability:
+ * - 500ms initial delay in ProtectedRoute for browser cookie processing
+ * - 300ms additional delay in checkAuthAsync for KMS decryption
+ * - Total 800ms buffer prevents false logouts on page refresh
  * 
  * AUTHENTICATION FLOW:
  * 1. Check Redux state (fast path for authenticated users)
@@ -55,12 +55,10 @@ const ProtectedRoute = ({ children }) => {
     
     const checkAuth = async () => {
       try {
-        console.log('[ProtectedRoute] Starting auth check, isAuthenticated:', isAuthenticated);
         setHasCheckedAuth(true);
         
         // First check if we already have auth state from signin
         if (isAuthenticated) {
-          console.log('[ProtectedRoute] Already authenticated from Redux state');
           setAuthCheckComplete(true);
           setIsInitializing(false);
           return;
@@ -68,13 +66,10 @@ const ProtectedRoute = ({ children }) => {
         
         // If not authenticated in Redux, try to check with backend
         // This happens on page refresh when Redux state is lost
-        console.log('[ProtectedRoute] Not authenticated in Redux, checking with backend...');
         await dispatch(checkAuthAsync()).unwrap();
-        console.log('[ProtectedRoute] Backend auth check successful');
       } catch (error) {
         // On auth check failure, assume not authenticated
         // This will redirect to signin page
-        console.log('[ProtectedRoute] Backend auth check failed:', error);
       } finally {
         setAuthCheckComplete(true);
         setIsInitializing(false);
@@ -83,11 +78,10 @@ const ProtectedRoute = ({ children }) => {
 
     // CRITICAL: HttpOnly cookie availability timing for page refresh
     // Browser needs time to process httpOnly cookies after page reload
-    // Optimized delay for KMS encryption processing time
-    // This delay prevents false authentication failures that cause unwanted logouts
+    // This 500ms delay prevents false authentication failures on refresh
     const timer = setTimeout(() => {
       checkAuth();
-    }, 500); // Optimized timing for KMS-encrypted cookie processing
+    }, 500); // Initial delay for browser cookie processing
     
     return () => clearTimeout(timer);
   }, [dispatch, isAuthenticated, hasCheckedAuth]);

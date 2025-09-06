@@ -300,17 +300,14 @@ class AuthService {
    */
   async isAuthenticated() {
     try {
-      console.log('[authService.isAuthenticated] Making request to verify-token endpoint...');
       // Extended timeout handles page refresh scenarios and KMS encryption processing delays
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
         withCredentials: true,
         timeout: 10000 // Increased for KMS encryption delays
       });
       
-      console.log('[authService.isAuthenticated] Response status:', response.status);
       return response.status === 200;
     } catch (error) {
-      console.log('[authService.isAuthenticated] Request failed:', error.response?.status, error.response?.data || error.message);
       return false;
     }
   }

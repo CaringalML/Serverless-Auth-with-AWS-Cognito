@@ -104,7 +104,6 @@ resource "aws_lambda_function" "custom_message" {
     create_before_destroy = false
     ignore_changes = [
       # Ignore changes to these fields to prevent unnecessary updates
-      last_modified,
       qualified_arn,
       version
     ]
@@ -135,23 +134,42 @@ resource "aws_lambda_permission" "cognito_custom_message" {
   source_arn    = aws_cognito_user_pool.main.arn
 }
 
-# Archive Lambda functions with source code tracking
-data "archive_file" "lambda_functions" {
+# Build Lambda deployment packages with shared utilities
+resource "null_resource" "lambda_packages" {
   for_each = local.lambda_functions
 
-  type        = "zip"
-  source_dir  = "${path.module}/lambda_functions/${each.key}"
-  output_path = "${path.module}/lambda_functions/${each.key}/${each.key}.zip"
+  # Rebuild package when function code or shared code changes
+  triggers = {
+    function_code = filemd5("${path.module}/lambda_functions/${each.key}/${each.key}.py")
+    shared_utils  = filemd5("${path.module}/lambda_functions/shared/utils.py") 
+    turnstile     = filemd5("${path.module}/lambda_functions/shared/turnstile.py")
+  }
 
-  # This ensures the archive is only recreated when source files change
-  excludes = ["__pycache__", "*.pyc", "*.pyo", ".DS_Store", "Thumbs.db", "*.zip"]
+  # Build deployment package with correct structure (flat with shared utilities)
+  provisioner "local-exec" {
+    command = <<-EOT
+      cd "${path.module}/lambda_functions/${each.key}" && \
+      rm -f ${each.key}.zip && \
+      zip -r ${each.key}.zip . && \
+      cd ../shared && \
+      zip -ru "../${each.key}/${each.key}.zip" . --exclude="__pycache__/*" "*.pyc" "*.pyo" "*.zip"
+    EOT
+  }
+}
+
+# Use the pre-built zip files created by null_resource
+locals {
+  lambda_zip_files = {
+    for key in keys(local.lambda_functions) : 
+    key => "${path.module}/lambda_functions/${key}/${key}.zip"
+  }
 }
 
 
 resource "aws_lambda_function" "auth_functions" {
   for_each = local.lambda_functions
 
-  filename      = data.archive_file.lambda_functions[each.key].output_path
+  filename      = local.lambda_zip_files[each.key]
   function_name = "${var.project_name}-${var.environment}-${replace(each.key, "_", "-")}"
   role          = aws_iam_role.lambda_role.arn
   handler       = each.value.handler
@@ -159,8 +177,12 @@ resource "aws_lambda_function" "auth_functions" {
   timeout       = each.value.timeout
   memory_size   = each.value.memory_size
 
-  # This hash ensures Lambda only updates when the source code changes
-  source_code_hash = data.archive_file.lambda_functions[each.key].output_base64sha256
+  # Use combined hash from all triggers to ensure consistency
+  source_code_hash = base64sha256(join("-", [
+    null_resource.lambda_packages[each.key].triggers.function_code,
+    null_resource.lambda_packages[each.key].triggers.shared_utils,
+    null_resource.lambda_packages[each.key].triggers.turnstile
+  ]))
 
   layers = [aws_lambda_layer_version.shared.arn]
 
@@ -194,7 +216,6 @@ resource "aws_lambda_function" "auth_functions" {
     create_before_destroy = false
     ignore_changes = [
       # Ignore changes to these fields to prevent unnecessary updates
-      last_modified,
       qualified_arn,
       version
     ]
@@ -202,7 +223,7 @@ resource "aws_lambda_function" "auth_functions" {
 
   depends_on = [
     aws_iam_role.lambda_role,
-    data.archive_file.lambda_functions,
+    null_resource.lambda_packages,
     aws_lambda_layer_version.shared
   ]
 }

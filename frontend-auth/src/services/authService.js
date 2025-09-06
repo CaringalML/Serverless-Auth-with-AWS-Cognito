@@ -53,7 +53,7 @@ class AuthService {
     try {
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, { 
         withCredentials: true,
-        timeout: 5000 
+        timeout: 10000 // Increased for KMS encryption delays
       });
       return response.status === 200;
     } catch (error) {
@@ -300,10 +300,10 @@ class AuthService {
    */
   async isAuthenticated() {
     try {
-      // Extended timeout handles page refresh scenarios where cookies need time to be available
+      // Extended timeout handles page refresh scenarios and KMS encryption processing delays
       const response = await axios.get(API_ENDPOINTS.VERIFY_TOKEN, {
         withCredentials: true,
-        timeout: 5000
+        timeout: 10000 // Increased for KMS encryption delays
       });
       
       return response.status === 200;

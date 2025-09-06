@@ -117,6 +117,7 @@ resource "aws_api_gateway_integration" "google_login" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.auth_functions["google_auth"].invoke_arn
+  timeout_milliseconds    = 29000 # Maximum API Gateway timeout for KMS encryption
 }
 
 resource "aws_api_gateway_integration" "google_callback" {
@@ -127,6 +128,7 @@ resource "aws_api_gateway_integration" "google_callback" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.auth_functions["google_auth"].invoke_arn
+  timeout_milliseconds    = 29000 # Maximum API Gateway timeout for KMS encryption
 }
 
 # OPTIONS methods for CORS support
@@ -259,6 +261,7 @@ resource "aws_api_gateway_integration" "lambda" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.auth_functions[each.key].invoke_arn
+  timeout_milliseconds    = 29000 # Maximum API Gateway timeout for KMS encryption
 }
 
 resource "aws_api_gateway_integration" "options" {

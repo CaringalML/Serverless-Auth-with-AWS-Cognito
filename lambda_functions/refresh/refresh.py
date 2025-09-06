@@ -10,8 +10,11 @@ from utils import (
     parse_body, 
     create_cookie,
     create_encrypted_cookie,
+    create_encrypted_cookies_parallel,
+    create_encrypted_cookies_with_cache,
     extract_and_decrypt_token_from_cookie,
-    should_use_kms_encryption
+    should_use_kms_encryption,
+    decode_token_payload
 )
 
 cognito_client = boto3.client('cognito-idp')
@@ -53,22 +56,32 @@ def lambda_handler(event, context):
             use_kms = should_use_kms_encryption()
             
             if use_kms:
-                # Create KMS-encrypted cookies for refreshed tokens
-                cookies = [
-                    create_encrypted_cookie(
-                        'accessToken', 
-                        access_token, 
-                        token_type='access',
-                        max_age_seconds=expires_in
-                    ),
-                    create_encrypted_cookie(
-                        'idToken', 
-                        id_token,
-                        token_type='id', 
-                        max_age_seconds=expires_in
-                    )
+                # Create KMS-encrypted cookies in parallel for refreshed tokens
+                print("Starting parallel KMS encryption for refreshed tokens")
+                
+                tokens_to_encrypt = [
+                    {
+                        'name': 'accessToken',
+                        'token': access_token, 
+                        'token_type': 'access',
+                        'max_age_seconds': expires_in
+                    },
+                    {
+                        'name': 'idToken',
+                        'token': id_token,
+                        'token_type': 'id',
+                        'max_age_seconds': expires_in
+                    }
                 ]
-                print("Successfully created KMS-encrypted cookies for token refresh")
+                
+                # Get user ID from ID token for caching
+                user_id = None
+                if id_token:
+                    id_payload = decode_token_payload(id_token)
+                    user_id = id_payload.get('sub') if id_payload else None
+                
+                cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id, force_refresh=True)
+                print("Successfully created KMS-encrypted cookies for token refresh with cache update")
             else:
                 # Create standard httpOnly cookies
                 cookies = [

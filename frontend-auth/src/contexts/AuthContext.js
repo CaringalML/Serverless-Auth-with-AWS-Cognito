@@ -20,10 +20,13 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     try {
-      if (authService.isAuthenticated()) {
-        const userInfo = authService.getUserInfo();
+      // Add delay to allow KMS-encrypted cookies to be fully processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (await authService.isAuthenticated()) {
+        const userInfo = await authService.getUserInfo();
         setUser(userInfo);
       }
     } catch (error) {
@@ -59,7 +62,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authService.signin(email, password);
-      const userInfo = authService.getUserInfo();
+      
+      // Add delay to ensure KMS-encrypted cookies are fully processed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const userInfo = await authService.getUserInfo();
       setUser(userInfo);
       return response;
     } catch (error) {
@@ -105,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     logout,
-    isAuthenticated: authService.isAuthenticated(),
+    isAuthenticated: !!user, // Use user state instead of service call
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

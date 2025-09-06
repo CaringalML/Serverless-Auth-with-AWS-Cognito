@@ -22,46 +22,57 @@ locals {
     signup = {
       handler = "signup.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     signin = {
       handler = "signin.lambda_handler"
-      timeout = 10
+      timeout = 20
+      memory_size = 512  # KMS encryption - more CPU/memory for better performance
     }
     verify = {
       handler = "verify.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     forgot_password = {
       handler = "forgot_password.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     reset_password = {
       handler = "reset_password.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     resend_verification = {
       handler = "resend_verification.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     refresh = {
       handler = "refresh.lambda_handler"
-      timeout = 10
+      timeout = 20
+      memory_size = 384  # KMS encryption - moderate memory for 2 tokens
     }
     logout = {
       handler = "logout.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     verify_token = {
       handler = "verify_token.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     user_info = {
       handler = "user_info.lambda_handler"
       timeout = 10
+      memory_size = 128  # No KMS encryption
     }
     google_auth = {
       handler = "google_auth.lambda_handler"
-      timeout = 15
+      timeout = 25
+      memory_size = 512  # KMS encryption - more CPU/memory for better performance
     }
   }
 }
@@ -146,7 +157,7 @@ resource "aws_lambda_function" "auth_functions" {
   handler       = each.value.handler
   runtime       = "python3.12"
   timeout       = each.value.timeout
-  memory_size   = 128
+  memory_size   = each.value.memory_size
 
   # This hash ensures Lambda only updates when the source code changes
   source_code_hash = data.archive_file.lambda_functions[each.key].output_base64sha256
@@ -158,6 +169,7 @@ resource "aws_lambda_function" "auth_functions" {
       COGNITO_CLIENT_ID      = aws_cognito_user_pool_client.main.id
       COGNITO_USER_POOL_ID   = aws_cognito_user_pool.main.id
       USERS_TABLE            = aws_dynamodb_table.users.name
+      TOKEN_CACHE_TABLE      = aws_dynamodb_table.token_cache.name
       CORS_ALLOW_ORIGIN      = var.cors_allow_origin
       CORS_ALLOW_HEADERS     = var.cors_allow_headers
       CORS_ALLOW_METHODS     = var.cors_allow_methods

@@ -44,10 +44,11 @@ export const signin = createAsyncThunk(
       if (response.user) {
         return response;
       } else {
-        // Try to get user info from httpOnly cookies after a small delay
+        // Try to get user info from httpOnly cookies after a delay
         try {
-          // Wait for KMS-encrypted cookies to be processed by browser
-          await new Promise(resolve => setTimeout(resolve, 400));
+          // Wait 600ms for KMS-encrypted cookies to be fully processed by browser
+          // This ensures user data is available after successful signin
+          await new Promise(resolve => setTimeout(resolve, 600));
           const userInfo = await authService.getUserInfo();
           return { ...response, user: userInfo };
         } catch (userInfoError) {
@@ -101,6 +102,7 @@ export const resetPassword = createAsyncThunk(
  * 
  * TIMING SOLUTION:
  * - 500ms delay ensures httpOnly cookies are available after page refresh
+ * - Additional 700ms delay in ProtectedRoute for total 1200ms buffer
  * - Prevents premature authentication failures
  * - Maintains seamless user experience
  * 
@@ -112,8 +114,8 @@ export const checkAuthAsync = createAsyncThunk(
     try {
       // CRITICAL: Wait for httpOnly cookies to be available after page refresh
       // Browser needs time to process secure cookies before API calls
-      // Optimized delay for KMS encryption processing
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 500ms delay for KMS encryption processing (combines with ProtectedRoute's 700ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const isAuth = await authService.isAuthenticated();
       

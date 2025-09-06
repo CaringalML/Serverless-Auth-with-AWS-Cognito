@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-19.1-blue)](https://reactjs.org)
 [![Python](https://img.shields.io/badge/Python-3.12-green)](https://python.org)
 
-> A production-ready serverless authentication system built on AWS, featuring **100% httpOnly cookie security**, comprehensive rate limiting, and Google OAuth integration.
+> A production-ready serverless authentication system built on AWS, featuring **100% httpOnly cookie security**, **Cloudflare Turnstile bot protection**, comprehensive rate limiting, and Google OAuth integration.
 
 ---
 

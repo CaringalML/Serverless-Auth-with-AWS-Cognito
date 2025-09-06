@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 import base64
 
 sys.path.append('/opt')
-from utils import create_response
+from utils import create_response, extract_and_decrypt_token_from_cookie
 
 cognito_client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')
@@ -56,20 +56,12 @@ def lambda_handler(event, context):
     - Same-domain architecture enables secure cookie sharing
     """
     try:
-        # Extract tokens from httpOnly cookies
-        # API Gateway can pass cookies in different ways
+        # Extract and decrypt tokens from KMS-encrypted httpOnly cookies
         headers = event.get('headers', {})
-        cookies = headers.get('Cookie') or headers.get('cookie', '')
-        access_token = None
-        id_token = None
+        cookies_header = headers.get('Cookie') or headers.get('cookie', '')
         
-        if cookies:
-            for cookie in cookies.split(';'):
-                cookie = cookie.strip()
-                if cookie.startswith('accessToken='):
-                    access_token = cookie.split('=', 1)[1]
-                elif cookie.startswith('idToken='):
-                    id_token = cookie.split('=', 1)[1]
+        access_token = extract_and_decrypt_token_from_cookie(cookies_header, 'accessToken')
+        id_token = extract_and_decrypt_token_from_cookie(cookies_header, 'idToken')
         
         if not access_token or not id_token:
             return create_response(401, {'error': 'Authentication tokens not found'})

@@ -223,8 +223,8 @@ class KMSTokenEncryption:
             
         except ClientError as e:
             logger.error(f"KMS decryption failed: {str(e)}")
-            # Return original token if decryption fails (might be unencrypted)
-            return encrypted_token
+            # SECURITY: Never fallback to unencrypted tokens - fail securely
+            return None
 
 
 # Singleton instance for KMS encryption
@@ -270,14 +270,17 @@ def create_encrypted_cookie(name: str, token: str, token_type: str = 'access',
 
 def extract_and_decrypt_token_from_cookie(cookies_header: str, cookie_name: str) -> Optional[str]:
     """
-    Extract and optionally decrypt a token from httpOnly cookie.
+    Extract and decrypt a token from KMS-encrypted httpOnly cookie.
+    
+    SECURITY: This function enforces KMS decryption when enabled.
+    No fallback to unencrypted tokens for maximum security.
     
     Args:
         cookies_header: Cookie header string from request
         cookie_name: Name of the cookie to extract
         
     Returns:
-        Decrypted JWT token or None if not found/invalid
+        Decrypted JWT token or None if not found/decryption fails
     """
     if not cookies_header:
         return None

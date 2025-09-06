@@ -5,26 +5,28 @@ import sys
 from botocore.exceptions import ClientError
 
 sys.path.append('/opt')
-from utils import create_response
+from utils import create_response, extract_and_decrypt_token_from_cookie
 
 cognito_client = boto3.client('cognito-idp')
 
 def lambda_handler(event, context):
     """
-    HTTPONLY COOKIE AUTHENTICATION VERIFICATION
+    KMS-ENHANCED HTTPONLY COOKIE AUTHENTICATION VERIFICATION
     
-    Validates user authentication using secure httpOnly cookies.
+    Validates user authentication using secure httpOnly cookies with military-grade encryption.
     This endpoint is immune to XSS attacks as tokens are never accessible to JavaScript.
     
     SECURITY ARCHITECTURE:
-    - Extracts accessToken from httpOnly cookie headers
-    - Validates token with AWS Cognito User Pool
+    - Extracts and decrypts accessToken from KMS-encrypted httpOnly cookie
+    - Automatically handles both encrypted and unencrypted tokens
+    - Validates decrypted token with AWS Cognito User Pool
     - Returns 200 for valid authentication, 401 for invalid/expired
-    - No token exposure to frontend JavaScript
+    - Defense-in-depth: httpOnly + KMS AES-256 encryption
     
-    COOKIE EXTRACTION:
-    API Gateway passes cookies in headers as 'Cookie' or 'cookie'
-    Format: 'accessToken=jwt_token; idToken=jwt_token; refreshToken=jwt_token'
+    KMS ENCRYPTION SUPPORT:
+    - Uses extract_and_decrypt_token_from_cookie utility
+    - Requires successful KMS decryption for authentication
+    - Fails securely if KMS decryption fails (no fallback)
     
     DOMAINS:
     - Request from: filodelight.online (frontend)
@@ -32,18 +34,12 @@ def lambda_handler(event, context):
     - Same root domain enables SameSite=Strict cookie sharing
     """
     try:
-        # Extract access token from httpOnly cookie
-        # API Gateway can pass cookies in different ways
+        # Extract and decrypt access token from KMS-encrypted httpOnly cookie
+        # SECURITY: Requires successful KMS decryption - no fallback for security
         headers = event.get('headers', {})
-        cookies = headers.get('Cookie') or headers.get('cookie', '')
-        access_token = None
+        cookies_header = headers.get('Cookie') or headers.get('cookie', '')
         
-        if cookies:
-            for cookie in cookies.split(';'):
-                cookie = cookie.strip()
-                if cookie.startswith('accessToken='):
-                    access_token = cookie.split('=', 1)[1]
-                    break
+        access_token = extract_and_decrypt_token_from_cookie(cookies_header, 'accessToken')
         
         if not access_token:
             return create_response(401, {'error': 'No access token found'})

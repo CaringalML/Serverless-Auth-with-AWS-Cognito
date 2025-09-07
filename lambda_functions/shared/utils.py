@@ -162,7 +162,7 @@ class KMSTokenEncryption:
             Base64-encoded encrypted token safe for cookie storage
         """
         if not self.kms_enabled:
-            return token  # Return unencrypted if KMS not enabled
+            raise Exception("KMS encryption is required but not enabled - cannot proceed without encryption")
         
         try:
             encryption_context = self.create_encryption_context(token_type, user_id)
@@ -182,8 +182,8 @@ class KMSTokenEncryption:
             
         except ClientError as e:
             logger.error(f"KMS encryption failed: {str(e)}")
-            # Fallback to unencrypted token if KMS fails
-            return token
+            # SECURITY: Never fallback to unencrypted tokens
+            raise Exception(f"Token encryption failed - cannot proceed: {str(e)}")
     
     def decrypt_token(self, encrypted_token: str, expected_token_type: str = 'access') -> Optional[str]:
         """
@@ -204,9 +204,9 @@ class KMSTokenEncryption:
             try:
                 ciphertext = base64.b64decode(encrypted_token)
             except Exception as decode_error:
-                # Not base64 encoded, likely an unencrypted token
-                logger.warning(f"Base64 decode failed: {decode_error}, treating as unencrypted token")
-                return encrypted_token
+                # Invalid token format - fail securely
+                logger.error(f"Invalid token format - base64 decode failed: {decode_error}")
+                return None
             
             # Use the same encryption context creation method for consistency
             encryption_context = self.create_encryption_context(expected_token_type)
@@ -351,11 +351,8 @@ def create_encrypted_cookies_parallel(tokens: List[Dict[str, str]], user_id: Opt
     kms = get_kms_encryption()
     
     if not kms.kms_enabled:
-        # Standard httpOnly cookies without encryption
-        return [
-            create_cookie(t['name'], t['token'], t['max_age_seconds'], http_only=True)
-            for t in tokens
-        ]
+        # SECURITY: Encryption is mandatory - never create unencrypted cookies
+        raise Exception("KMS encryption is required but not enabled - cannot create unencrypted cookies")
     
     def encrypt_single_token(token_info):
         """Encrypt a single token with error handling."""
@@ -373,13 +370,8 @@ def create_encrypted_cookies_parallel(tokens: List[Dict[str, str]], user_id: Opt
             )
         except Exception as e:
             logger.error(f"Failed to encrypt {token_info['token_type']} token: {str(e)}")
-            # Fallback to unencrypted cookie
-            return create_cookie(
-                token_info['name'], 
-                token_info['token'], 
-                token_info['max_age_seconds'], 
-                http_only=True
-            )
+            # SECURITY: Never fallback to unencrypted cookies
+            raise Exception(f"Token encryption failed - authentication cannot proceed: {str(e)}")
     
     # Use ThreadPoolExecutor for concurrent KMS API calls
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
@@ -516,12 +508,13 @@ def create_encrypted_cookies_with_cache(tokens: List[Dict[str, str]], user_id: O
     """
     kms = get_kms_encryption()
     
-    if not kms.kms_enabled or not user_id:
-        # Standard httpOnly cookies without encryption
-        return [
-            create_cookie(t['name'], t['token'], t['max_age_seconds'], http_only=True)
-            for t in tokens
-        ]
+    if not kms.kms_enabled:
+        # SECURITY: Encryption is mandatory - never create unencrypted cookies
+        raise Exception("KMS encryption is required but not enabled - authentication cannot proceed")
+    
+    if not user_id:
+        # SECURITY: User ID required for KMS encryption context
+        raise Exception("User ID is required for secure token encryption")
     
     # If force_refresh, invalidate existing cache first
     if force_refresh:

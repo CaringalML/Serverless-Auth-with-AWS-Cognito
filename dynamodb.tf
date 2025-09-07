@@ -19,6 +19,16 @@ resource "aws_dynamodb_table" "users" {
     projection_type = "ALL"
   }
 
+  # Server-side encryption at rest for user data protection
+  server_side_encryption {
+    enabled = true
+  }
+
+  # Point-in-time recovery for user data protection
+  point_in_time_recovery {
+    enabled = true
+  }
+
   lifecycle {
     prevent_destroy = false
   }
@@ -46,6 +56,17 @@ resource "aws_dynamodb_table" "token_cache" {
   ttl {
     attribute_name = "expires_at"
     enabled        = true
+  }
+
+  # Server-side encryption at rest for enhanced security
+  # Uses AWS managed KMS key for DynamoDB encryption
+  server_side_encryption {
+    enabled = true
+  }
+
+  # Point-in-time recovery for data protection
+  point_in_time_recovery {
+    enabled = true
   }
 
   # Lifecycle management

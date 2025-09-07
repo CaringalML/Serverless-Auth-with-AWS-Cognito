@@ -42,13 +42,13 @@ def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True
     - HttpOnly: Prevents XSS attacks by blocking JavaScript access to tokens
     - Secure: Ensures cookies only transmitted over HTTPS connections
     - SameSite=Strict: Maximum CSRF protection (same-domain requests only)
-    - Domain=.filodelight.online: Cookie shared across all subdomains
+    - Domain=.{root_domain}: Cookie shared across all subdomains
     - Path=/: Cookie available to all routes on the domain
     - Max-Age + Expires: Dual expiration for browser compatibility
     
     ARCHITECTURE:
-    Frontend domain: filodelight.online 
-    API domain: api.filodelight.online
+    Frontend domain: {root_domain} 
+    API domain: api.{root_domain}
     Domain attribute enables cookie sharing between subdomains
     
     Args:
@@ -71,9 +71,10 @@ def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True
         cookie_parts.append(f"Expires={expires.strftime('%a, %d %b %Y %H:%M:%S GMT')}")
     
     # Add Domain attribute to enable subdomain sharing
-    # Using .filodelight.online allows cookies to be shared between
-    # filodelight.online and api.filodelight.online
-    cookie_parts.append("Domain=.filodelight.online")
+    # Using the configured root domain allows cookies to be shared between
+    # the frontend domain and API subdomain
+    root_domain = os.environ.get('ROOT_DOMAIN', 'filodelight.online')
+    cookie_parts.append(f"Domain=.{root_domain}")
     cookie_parts.append("Path=/")
     
     if http_only:

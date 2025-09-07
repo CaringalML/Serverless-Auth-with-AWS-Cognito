@@ -29,8 +29,8 @@ def lambda_handler(event, context):
     - Fails securely if KMS decryption fails (no fallback)
     
     DOMAINS:
-    - Request from: filodelight.online (frontend)
-    - Validated by: api.filodelight.online (API)
+    - Request from: {root_domain} (frontend)
+    - Validated by: api.{root_domain} (API)
     - Same root domain enables SameSite=Strict cookie sharing
     """
     try:

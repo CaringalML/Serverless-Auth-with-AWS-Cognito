@@ -42,13 +42,14 @@ def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True
     - HttpOnly: Prevents XSS attacks by blocking JavaScript access to tokens
     - Secure: Ensures cookies only transmitted over HTTPS connections
     - SameSite=Strict: Maximum CSRF protection (same-domain requests only)
+    - Domain=.filodelight.online: Cookie shared across all subdomains
     - Path=/: Cookie available to all routes on the domain
     - Max-Age + Expires: Dual expiration for browser compatibility
     
     ARCHITECTURE:
     Frontend domain: filodelight.online 
     API domain: api.filodelight.online
-    Same root domain enables secure cookie sharing with Strict policy
+    Domain attribute enables cookie sharing between subdomains
     
     Args:
         name: Cookie name (accessToken, idToken, refreshToken)
@@ -69,6 +70,10 @@ def create_cookie(name, value, max_age_seconds=None, http_only=True, secure=True
         expires = datetime.utcnow() + timedelta(seconds=max_age_seconds)
         cookie_parts.append(f"Expires={expires.strftime('%a, %d %b %Y %H:%M:%S GMT')}")
     
+    # Add Domain attribute to enable subdomain sharing
+    # Using .filodelight.online allows cookies to be shared between
+    # filodelight.online and api.filodelight.online
+    cookie_parts.append("Domain=.filodelight.online")
     cookie_parts.append("Path=/")
     
     if http_only:
@@ -533,7 +538,7 @@ def create_encrypted_cookies_with_cache(tokens: List[Dict[str, str]], user_id: O
         cookies = []
         for token in tokens:
             token_type = token['token_type']
-            if token_type in cached_tokens:
+            if token_type in cached_tokens and cached_tokens[token_type]:  # Check not empty
                 cookie = create_cookie(
                     token['name'],
                     cached_tokens[token_type],
@@ -542,11 +547,17 @@ def create_encrypted_cookies_with_cache(tokens: List[Dict[str, str]], user_id: O
                 )
                 cookies.append(cookie)
             else:
-                # Fallback: encrypt this token individually if not in cache
-                logger.warning(f"Token type {token_type} not found in cache, encrypting individually")
+                # Cache miss or empty token - encrypt individually and update cache
+                logger.warning(f"Token type {token_type} not in cache or empty, encrypting individually")
                 encrypted_token = kms.encrypt_token(token['token'], token_type, user_id)
                 cookie = create_cookie(token['name'], encrypted_token, token['max_age_seconds'], http_only=True)
                 cookies.append(cookie)
+                
+                # Update cache with this newly encrypted token
+                try:
+                    cache_encrypted_tokens(user_id, {token_type: encrypted_token}, expires_in_seconds=7200)
+                except Exception as e:
+                    logger.error(f"Failed to update cache for token {token_type}: {str(e)}")
         
         return cookies
     

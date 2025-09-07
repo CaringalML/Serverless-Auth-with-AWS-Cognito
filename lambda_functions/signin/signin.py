@@ -147,46 +147,47 @@ def lambda_handler(event, context):
             else:
                 print("Warning: Could not decode ID token for database update")
             
+            # KMS ENCRYPTION IS MANDATORY - NO FALLBACK FOR SECURITY
+            if not user_id:
+                print("ERROR: Cannot encrypt tokens without user_id")
+                return create_response(500, {'error': 'Authentication failed: user information unavailable'})
+            
             # DETERMINE IF KMS ENCRYPTION SHOULD BE USED
             use_kms = should_use_kms_encryption()
             
-            if use_kms:
-                print(f"KMS encryption enabled for user: {user_id}")
-                # CREATE KMS-ENCRYPTED COOKIES IN PARALLEL - MILITARY-GRADE SECURITY
-                # Performance optimized: ~200ms instead of ~600ms via concurrent encryption
-                print("Starting parallel KMS encryption for all tokens")
-                
-                tokens_to_encrypt = [
-                    {
-                        'name': 'accessToken',
-                        'token': access_token,
-                        'token_type': 'access',
-                        'max_age_seconds': expires_in
-                    },
-                    {
-                        'name': 'idToken', 
-                        'token': id_token,
-                        'token_type': 'id',
-                        'max_age_seconds': expires_in
-                    },
-                    {
-                        'name': 'refreshToken',
-                        'token': refresh_token,
-                        'token_type': 'refresh', 
-                        'max_age_seconds': 30*24*60*60  # 30 days
-                    }
-                ]
-                
-                cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id)
-                print("Successfully created KMS-encrypted cookies with caching optimization")
-            else:
-                # STANDARD HTTPONLY COOKIES (still secure, not encrypted)
-                cookies = [
-                    create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
-                    create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True), 
-                    create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # 30 days
-                ]
-                print("Using standard httpOnly cookies (KMS not enabled)")
+            if not use_kms:
+                print("ERROR: KMS encryption is required but not enabled")
+                return create_response(500, {'error': 'Authentication failed: security requirements not met'})
+            
+            print(f"KMS encryption enabled for user: {user_id}")
+            # CREATE KMS-ENCRYPTED COOKIES IN PARALLEL - MILITARY-GRADE SECURITY
+            # Performance optimized: ~200ms instead of ~600ms via concurrent encryption
+            print("Starting parallel KMS encryption for all tokens")
+            
+            tokens_to_encrypt = [
+                {
+                    'name': 'accessToken',
+                    'token': access_token,
+                    'token_type': 'access',
+                    'max_age_seconds': expires_in
+                },
+                {
+                    'name': 'idToken', 
+                    'token': id_token,
+                    'token_type': 'id',
+                    'max_age_seconds': expires_in
+                },
+                {
+                    'name': 'refreshToken',
+                    'token': refresh_token,
+                    'token_type': 'refresh', 
+                    'max_age_seconds': 30*24*60*60  # 30 days
+                }
+            ]
+            
+            # Force refresh on new login to invalidate old cached tokens
+            cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id, force_refresh=True)
+            print("Successfully created KMS-encrypted cookies with caching optimization")
             
             # Return success with user info and encryption status
             response_data = {

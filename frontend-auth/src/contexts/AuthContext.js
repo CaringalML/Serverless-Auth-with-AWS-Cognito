@@ -22,8 +22,8 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      // Optimized delay to allow KMS-encrypted cookies to be fully processed
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Brief delay to allow cookies to be processed
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       if (await authService.isAuthenticated()) {
         const userInfo = await authService.getUserInfo();
@@ -63,8 +63,8 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const response = await authService.signin(email, password);
       
-      // Optimized delay to ensure KMS-encrypted cookies are fully processed
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Brief delay to ensure cookies are processed
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const userInfo = await authService.getUserInfo();
       setUser(userInfo);

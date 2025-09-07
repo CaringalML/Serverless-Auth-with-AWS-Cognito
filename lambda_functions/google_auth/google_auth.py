@@ -11,7 +11,12 @@ import secrets
 import string
 
 sys.path.append('/opt')
-from utils import create_response, create_cookie
+from utils import (
+    create_response, 
+    create_cookie, 
+    should_use_kms_encryption,
+    create_encrypted_cookies_with_cache
+)
 
 cognito_client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')
@@ -431,6 +436,8 @@ def handle_google_callback(query_params):
         
         # Decode ID token to get user information and create DynamoDB record
         user_info = decode_token_payload(id_token)
+        user_id = user_info.get('sub') if user_info else None
+        
         if user_info:
             # Create user record in DynamoDB
             create_success = create_user_record(user_info, provider='Google')
@@ -439,15 +446,50 @@ def handle_google_callback(query_params):
         else:
             print("Warning: Could not decode ID token for user info")
         
-        # Create secure httpOnly cookies
-        cookies = [
-            create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
-            create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True)
+        # KMS ENCRYPTION IS MANDATORY - NO FALLBACK FOR SECURITY
+        if not user_id:
+            print("ERROR: Cannot encrypt tokens without user_id")
+            return redirect_with_error('Authentication failed: user information unavailable')
+        
+        # DETERMINE IF KMS ENCRYPTION SHOULD BE USED
+        use_kms = should_use_kms_encryption()
+        
+        if not use_kms:
+            print("ERROR: KMS encryption is required but not enabled")
+            return redirect_with_error('Authentication failed: security requirements not met')
+        
+        print(f"KMS encryption enabled for Google OAuth user: {user_id}")
+        # CREATE KMS-ENCRYPTED COOKIES WITH CACHING - MILITARY-GRADE SECURITY
+        # Performance optimized: uses cached encrypted tokens when available
+        print("Starting KMS encryption with caching for Google OAuth tokens")
+        
+        tokens_to_encrypt = [
+            {
+                'name': 'accessToken',
+                'token': access_token,
+                'token_type': 'access',
+                'max_age_seconds': expires_in
+            },
+            {
+                'name': 'idToken',
+                'token': id_token,
+                'token_type': 'id',
+                'max_age_seconds': expires_in
+            }
         ]
         
-        # Add refresh token cookie if available
+        # Add refresh token if available
         if refresh_token:
-            cookies.append(create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True))  # 30 days
+            tokens_to_encrypt.append({
+                'name': 'refreshToken',
+                'token': refresh_token,
+                'token_type': 'refresh',
+                'max_age_seconds': 30*24*60*60  # 30 days
+            })
+        
+        # Use the optimized encryption with caching (force_refresh=True for new login)
+        cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id, force_refresh=True)
+        print("Successfully created KMS-encrypted cookies with caching for Google OAuth")
         
         # Redirect to dashboard with success
         frontend_domain = os.environ.get('FRONTEND_DOMAIN', 'filodelight.online')
@@ -470,11 +512,10 @@ def handle_google_callback(query_params):
                 <p>Setting up your session...</p>
                 <p>Redirecting to dashboard...</p>
                 <script>
-                    // Match original auth timing for httpOnly cookie processing
-                    // Same timing as ProtectedRoute + checkAuthAsync (800ms + 500ms = 1.3s)
+                    // Brief delay to ensure cookies are processed before redirect
                     setTimeout(function() {{
                         window.location.href="https://{frontend_domain}/dashboard";
-                    }}, 1300);
+                    }}, 200);
                 </script>
             </body></html>'''
         }

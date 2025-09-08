@@ -12,6 +12,7 @@ from utils import (
     create_encrypted_cookie,
     create_encrypted_cookies_parallel,
     create_encrypted_cookies_with_cache,
+    create_encrypted_cookies_smart_cache,
     extract_and_decrypt_token_from_cookie,
     should_use_kms_encryption,
     decode_token_payload
@@ -71,6 +72,12 @@ def lambda_handler(event, context):
                         'token': id_token,
                         'token_type': 'id',
                         'max_age_seconds': expires_in
+                    },
+                    {
+                        'name': 'refreshToken',
+                        'token': refresh_token,  # CRITICAL FIX: Re-issue the refresh token cookie
+                        'token_type': 'refresh',
+                        'max_age_seconds': 30*24*60*60  # 30 days
                     }
                 ]
                 
@@ -80,13 +87,15 @@ def lambda_handler(event, context):
                     id_payload = decode_token_payload(id_token)
                     user_id = id_payload.get('sub') if id_payload else None
                 
-                cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id, force_refresh=True)
-                print("Successfully created KMS-encrypted cookies for token refresh with cache update")
+                # Use smart cache that only re-encrypts if tokens actually changed
+                cookies = create_encrypted_cookies_smart_cache(tokens_to_encrypt, user_id)
+                print("Successfully created KMS-encrypted cookies for token refresh with smart cache")
             else:
                 # Create standard httpOnly cookies
                 cookies = [
                     create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
-                    create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True)
+                    create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True),
+                    create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # CRITICAL FIX: Include refresh token
                 ]
                 print("Created standard httpOnly cookies for token refresh")
             

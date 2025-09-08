@@ -15,7 +15,8 @@ from utils import (
     create_response, 
     create_cookie, 
     should_use_kms_encryption,
-    create_encrypted_cookies_with_cache
+    create_encrypted_cookies_with_cache,
+    create_encrypted_cookies_smart_cache
 )
 
 cognito_client = boto3.client('cognito-idp')
@@ -487,9 +488,9 @@ def handle_google_callback(query_params):
                 'max_age_seconds': 30*24*60*60  # 30 days
             })
         
-        # Use the optimized encryption with caching (force_refresh=True for new login)
-        cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id, force_refresh=True)
-        print("Successfully created KMS-encrypted cookies with caching for Google OAuth")
+        # Use smart cache that only re-encrypts if tokens actually changed
+        cookies = create_encrypted_cookies_smart_cache(tokens_to_encrypt, user_id)
+        print("Successfully created KMS-encrypted cookies with smart caching for Google OAuth")
         
         # Redirect to dashboard with success
         frontend_domain = os.environ.get('FRONTEND_DOMAIN', 'filodelight.online')

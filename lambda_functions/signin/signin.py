@@ -13,6 +13,7 @@ from utils import (
     create_encrypted_cookie,
     create_encrypted_cookies_parallel,
     create_encrypted_cookies_with_cache,
+    create_encrypted_cookies_smart_cache,
     decode_token_payload,
     should_use_kms_encryption
 )
@@ -185,8 +186,8 @@ def lambda_handler(event, context):
                 }
             ]
             
-            # Force refresh on new login to invalidate old cached tokens
-            cookies = create_encrypted_cookies_with_cache(tokens_to_encrypt, user_id, force_refresh=True)
+            # Use smart cache that only re-encrypts if tokens actually changed
+            cookies = create_encrypted_cookies_smart_cache(tokens_to_encrypt, user_id)
             print("Successfully created KMS-encrypted cookies with caching optimization")
             
             # Return success with user info and encryption status

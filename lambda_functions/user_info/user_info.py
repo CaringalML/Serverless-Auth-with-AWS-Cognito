@@ -93,7 +93,7 @@ def lambda_handler(event, context):
             # Try to get additional info from DynamoDB
             try:
                 table = dynamodb.Table(os.environ['USERS_TABLE'])
-                db_response = table.get_item(Key={'user_id': user_info.get('sub')})
+                db_response = table.get_item(Key={'userId': user_info.get('sub')})
                 
                 if 'Item' in db_response:
                     db_user = db_response['Item']

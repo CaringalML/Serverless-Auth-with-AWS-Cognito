@@ -53,51 +53,61 @@ def lambda_handler(event, context):
             id_token = auth_result['IdToken']
             expires_in = auth_result['ExpiresIn']
             
-            # Determine if KMS encryption should be used
+            # KMS ENCRYPTION IS MANDATORY - NO FALLBACK FOR SECURITY
             use_kms = should_use_kms_encryption()
             
-            if use_kms:
-                # Create KMS-encrypted cookies in parallel for refreshed tokens
-                print("Starting parallel KMS encryption for refreshed tokens")
-                
-                tokens_to_encrypt = [
-                    {
-                        'name': 'accessToken',
-                        'token': access_token, 
-                        'token_type': 'access',
-                        'max_age_seconds': expires_in
-                    },
-                    {
-                        'name': 'idToken',
-                        'token': id_token,
-                        'token_type': 'id',
-                        'max_age_seconds': expires_in
-                    },
-                    {
-                        'name': 'refreshToken',
-                        'token': refresh_token,  # CRITICAL FIX: Re-issue the refresh token cookie
-                        'token_type': 'refresh',
-                        'max_age_seconds': 30*24*60*60  # 30 days
-                    }
-                ]
-                
-                # Get user ID from ID token for caching
-                user_id = None
-                if id_token:
-                    id_payload = decode_token_payload(id_token)
-                    user_id = id_payload.get('sub') if id_payload else None
-                
-                # Use smart cache that only re-encrypts if tokens actually changed
+            if not use_kms:
+                # SECURITY: KMS encryption is required - fail fast
+                print("ERROR: KMS encryption is required but not enabled")
+                return create_response(500, {
+                    'error': 'Authentication failed: security requirements not met'
+                })
+            
+            # Create KMS-encrypted cookies in parallel for refreshed tokens
+            print("Starting parallel KMS encryption for refreshed tokens")
+            
+            tokens_to_encrypt = [
+                {
+                    'name': 'accessToken',
+                    'token': access_token, 
+                    'token_type': 'access',
+                    'max_age_seconds': expires_in
+                },
+                {
+                    'name': 'idToken',
+                    'token': id_token,
+                    'token_type': 'id',
+                    'max_age_seconds': expires_in
+                },
+                {
+                    'name': 'refreshToken',
+                    'token': refresh_token,  # Re-issue the refresh token cookie
+                    'token_type': 'refresh',
+                    'max_age_seconds': 30*24*60*60  # 30 days
+                }
+            ]
+            
+            # Get user ID from ID token for caching
+            user_id = None
+            if id_token:
+                id_payload = decode_token_payload(id_token)
+                user_id = id_payload.get('sub') if id_payload else None
+            
+            if not user_id:
+                print("ERROR: Cannot encrypt tokens without user_id")
+                return create_response(500, {
+                    'error': 'Token refresh failed: user information unavailable'
+                })
+            
+            # Use smart cache that only re-encrypts if tokens actually changed
+            try:
                 cookies = create_encrypted_cookies_smart_cache(tokens_to_encrypt, user_id)
                 print("Successfully created KMS-encrypted cookies for token refresh with smart cache")
-            else:
-                # Create standard httpOnly cookies
-                cookies = [
-                    create_cookie('accessToken', access_token, max_age_seconds=expires_in, http_only=True),
-                    create_cookie('idToken', id_token, max_age_seconds=expires_in, http_only=True),
-                    create_cookie('refreshToken', refresh_token, max_age_seconds=30*24*60*60, http_only=True)  # CRITICAL FIX: Include refresh token
-                ]
-                print("Created standard httpOnly cookies for token refresh")
+            except Exception as e:
+                print(f"ERROR: Failed to create encrypted cookies: {str(e)}")
+                return create_response(500, {
+                    'error': 'Token refresh failed: encryption error'
+                })
             
             # Return success without exposing tokens in response body
             return create_response(200, {

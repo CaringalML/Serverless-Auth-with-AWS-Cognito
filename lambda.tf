@@ -204,6 +204,8 @@ resource "aws_lambda_function" "auth_functions" {
       KMS_TOKEN_KEY_ID       = aws_kms_key.auth_tokens.id
       KMS_ENCRYPTION_ENABLED = var.kms_encryption_enabled
       KMS_ROLLOUT_PERCENTAGE = var.kms_rollout_percentage
+      # SNS Alert Configuration
+      SYSTEM_ALERTS_SNS_TOPIC_ARN = aws_sns_topic.system_alerts.arn
     }
   }
 

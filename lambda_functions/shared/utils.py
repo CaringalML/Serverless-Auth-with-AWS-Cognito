@@ -11,6 +11,60 @@ from typing import Optional, Dict, Tuple, List
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Initialize SNS client for alerts
+sns_client = None
+def get_sns_client():
+    """Get or create singleton SNS client for alerts."""
+    global sns_client
+    if sns_client is None:
+        sns_client = boto3.client('sns')
+    return sns_client
+
+def send_system_alert(subject: str, message: str, severity: str = 'ERROR') -> bool:
+    """
+    Send system alert via SNS for critical failures.
+    
+    Args:
+        subject: Alert subject
+        message: Detailed alert message
+        severity: Alert severity (ERROR, WARNING, CRITICAL)
+        
+    Returns:
+        True if alert sent successfully, False otherwise
+    """
+    try:
+        sns_topic_arn = os.environ.get('SYSTEM_ALERTS_SNS_TOPIC_ARN')
+        if not sns_topic_arn:
+            logger.warning("SNS topic ARN not configured for system alerts")
+            return False
+        
+        sns = get_sns_client()
+        
+        # Format the message with context
+        full_message = f"""
+Severity: {severity}
+Environment: {os.environ.get('ENVIRONMENT', 'unknown')}
+Function: {os.environ.get('AWS_LAMBDA_FUNCTION_NAME', 'unknown')}
+Time: {datetime.utcnow().isoformat()}Z
+
+{message}
+
+Action Required: Please investigate immediately.
+        """
+        
+        response = sns.publish(
+            TopicArn=sns_topic_arn,
+            Subject=f"[{severity}] {subject}",
+            Message=full_message
+        )
+        
+        logger.info(f"System alert sent successfully: {response['MessageId']}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send system alert: {str(e)}")
+        return False
+
 def create_response(status_code, body, cookies=None):
     headers = {
         'Content-Type': 'application/json',
@@ -182,7 +236,16 @@ class KMSTokenEncryption:
             return encrypted_token
             
         except ClientError as e:
-            logger.error(f"KMS encryption failed: {str(e)}")
+            error_message = f"KMS encryption failed: {str(e)}"
+            logger.error(error_message)
+            
+            # Send alert for KMS encryption failures
+            send_system_alert(
+                subject="CRITICAL: KMS Token Encryption Failure",
+                message=f"Failed to encrypt {token_type} token\nUser: {user_id}\nError: {error_message}\n\nAuthentication cannot proceed without encryption.",
+                severity="CRITICAL"
+            )
+            
             # SECURITY: Never fallback to unencrypted tokens
             raise Exception(f"Token encryption failed - cannot proceed: {str(e)}")
     
@@ -225,7 +288,16 @@ class KMSTokenEncryption:
             return decrypted_token
             
         except ClientError as e:
-            logger.error(f"KMS decryption failed: {str(e)}")
+            error_message = f"KMS decryption failed: {str(e)}"
+            logger.error(error_message)
+            
+            # Send alert for KMS decryption failures
+            send_system_alert(
+                subject="CRITICAL: KMS Token Decryption Failure",
+                message=f"Failed to decrypt {expected_token_type} token\nError: {error_message}\n\nUser authentication may be impacted.",
+                severity="CRITICAL"
+            )
+            
             # SECURITY: Never fallback to unencrypted tokens - fail securely
             return None
 
@@ -370,7 +442,16 @@ def create_encrypted_cookies_parallel(tokens: List[Dict[str, str]], user_id: Opt
                 http_only=True
             )
         except Exception as e:
-            logger.error(f"Failed to encrypt {token_info['token_type']} token: {str(e)}")
+            error_message = f"Failed to encrypt {token_info['token_type']} token: {str(e)}"
+            logger.error(error_message)
+            
+            # Send alert for parallel encryption failures
+            send_system_alert(
+                subject="CRITICAL: Parallel Token Encryption Failure",
+                message=f"Failed during parallel encryption\nToken Type: {token_info['token_type']}\nUser: {user_id}\nError: {error_message}",
+                severity="CRITICAL"
+            )
+            
             # SECURITY: Never fallback to unencrypted cookies
             raise Exception(f"Token encryption failed - authentication cannot proceed: {str(e)}")
     
@@ -426,8 +507,30 @@ def cache_encrypted_tokens(user_id: str, encrypted_tokens: Dict, expires_in_seco
         logger.info(f"Successfully cached encrypted tokens for user: {user_id}")
         return True
         
+    except ClientError as e:
+        error_code = e.response['Error']['Code']
+        error_message = f"DynamoDB error caching tokens for user {user_id}: {error_code} - {str(e)}"
+        logger.error(error_message)
+        
+        # Send alert for critical cache failures
+        if error_code in ['ProvisionedThroughputExceededException', 'InternalServerError', 'ServiceUnavailable']:
+            send_system_alert(
+                subject="Critical: Token Cache Write Failure",
+                message=f"Failed to cache encrypted tokens\nUser: {user_id}\nError: {error_message}\n\nThis may impact authentication performance.",
+                severity="CRITICAL"
+            )
+        return False
+        
     except Exception as e:
-        logger.error(f"Failed to cache encrypted tokens for user {user_id}: {str(e)}")
+        error_message = f"Unexpected error caching tokens for user {user_id}: {str(e)}"
+        logger.error(error_message)
+        
+        # Send alert for unexpected failures
+        send_system_alert(
+            subject="Token Cache Write Error",
+            message=f"Unexpected failure caching tokens\nUser: {user_id}\nError: {error_message}",
+            severity="ERROR"
+        )
         return False
 
 
@@ -461,8 +564,26 @@ def get_cached_encrypted_tokens(user_id: str) -> Optional[Dict]:
         logger.info(f"Retrieved cached encrypted tokens for user: {user_id}")
         return item.get('cache_data', {})
         
+    except ClientError as e:
+        error_code = e.response['Error']['Code']
+        error_message = f"DynamoDB error retrieving cached tokens for user {user_id}: {error_code} - {str(e)}"
+        logger.error(error_message)
+        
+        # Send alert for critical cache read failures
+        if error_code in ['ProvisionedThroughputExceededException', 'InternalServerError', 'ServiceUnavailable']:
+            send_system_alert(
+                subject="Critical: Token Cache Read Failure",
+                message=f"Failed to retrieve cached tokens\nUser: {user_id}\nError: {error_message}\n\nFalling back to re-encryption, performance may be impacted.",
+                severity="WARNING"
+            )
+        return None
+        
     except Exception as e:
-        logger.error(f"Failed to retrieve cached tokens for user {user_id}: {str(e)}")
+        error_message = f"Unexpected error retrieving cached tokens for user {user_id}: {str(e)}"
+        logger.error(error_message)
+        
+        # Don't send alerts for every cache miss, but log it
+        logger.warning(f"Cache read failed, will re-encrypt tokens: {error_message}")
         return None
 
 
@@ -484,8 +605,24 @@ def invalidate_token_cache(user_id: str) -> bool:
         logger.info(f"Successfully invalidated token cache for user: {user_id}")
         return True
         
+    except ClientError as e:
+        error_code = e.response['Error']['Code']
+        error_message = f"DynamoDB error invalidating cache for user {user_id}: {error_code} - {str(e)}"
+        logger.error(error_message)
+        
+        # Only alert for critical failures, not for item not found
+        if error_code in ['ProvisionedThroughputExceededException', 'InternalServerError', 'ServiceUnavailable']:
+            send_system_alert(
+                subject="Token Cache Invalidation Failure",
+                message=f"Failed to invalidate token cache on logout\nUser: {user_id}\nError: {error_message}\n\nCache may contain stale tokens.",
+                severity="WARNING"
+            )
+        return False
+        
     except Exception as e:
-        logger.error(f"Failed to invalidate token cache for user {user_id}: {str(e)}")
+        error_message = f"Unexpected error invalidating cache for user {user_id}: {str(e)}"
+        logger.error(error_message)
+        # Log but don't alert for cache invalidation failures on logout
         return False
 
 

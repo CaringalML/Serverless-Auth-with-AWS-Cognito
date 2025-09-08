@@ -208,10 +208,44 @@ resource "aws_iam_policy" "lambda_kms_access" {
   }
 }
 
+# SNS Access Policy for Lambda Functions (for system alerts)
+resource "aws_iam_policy" "lambda_sns_access" {
+  name        = "${var.project_name}-${var.environment}-lambda-sns-access"
+  path        = "/"
+  description = "Policy for Lambda functions to publish SNS alerts"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:Publish"
+        ]
+        Resource = [
+          aws_sns_topic.system_alerts.arn,
+          aws_sns_topic.security_alerts.arn
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
 # Attach KMS Policy to Lambda Role
 resource "aws_iam_role_policy_attachment" "lambda_kms_access" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_kms_access.arn
+}
+
+# Attach SNS Policy to Lambda Role
+resource "aws_iam_role_policy_attachment" "lambda_sns_access" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_sns_access.arn
 }
 
 # Output IAM Role ARN for reference

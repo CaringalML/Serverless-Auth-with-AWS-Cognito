@@ -2,6 +2,7 @@
 ## *The Complete Implementation Guide*
 
 [![AWS](https://img.shields.io/badge/AWS-Serverless-orange)](https://aws.amazon.com)
+[![AWS KMS](https://img.shields.io/badge/AWS_KMS-AES--256-FF9900)](https://aws.amazon.com/kms)
 [![Google Cloud](https://img.shields.io/badge/Google_Cloud-OAuth_2.0-4285F4)](https://cloud.google.com)
 [![Cloudflare](https://img.shields.io/badge/Cloudflare-Turnstile-f38020)](https://www.cloudflare.com)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-purple)](https://terraform.io)

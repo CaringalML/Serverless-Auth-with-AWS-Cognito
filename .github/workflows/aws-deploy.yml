@@ -2,9 +2,9 @@ name: Fullstack Serverless CI/CD
 
 on:
   push:
-    branches: ["JWT-KMS"]
+    branches: ["SIMPLE-CRUD"]
   pull_request:
-    branches: ["JWT-KMS"]
+    branches: ["SIMPLE-CRUD"]
 
 env:
   AWS_REGION: ap-southeast-2

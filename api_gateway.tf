@@ -77,6 +77,18 @@ locals {
       method    = "GET"
     }
   }
+
+  # Employee management endpoints
+  employee_endpoints = {
+    employees_create = {
+      path_part = "employees"
+      method    = "POST"
+    }
+    employees_list = {
+      path_part = "employees"
+      method    = "GET"
+    }
+  }
 }
 
 # Google OAuth endpoints require special handling (multiple methods)
@@ -343,6 +355,21 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration.google_callback,
       aws_api_gateway_integration.google_options,
       aws_api_gateway_integration.google_callback_options,
+      # Employee management resources
+      aws_api_gateway_resource.employees,
+      aws_api_gateway_resource.employee_by_id,
+      aws_api_gateway_method.employees_create,
+      aws_api_gateway_method.employees_list,
+      aws_api_gateway_method.employees_update,
+      aws_api_gateway_method.employees_delete,
+      aws_api_gateway_method.employees_options,
+      aws_api_gateway_method.employee_by_id_options,
+      aws_api_gateway_integration.employees_create,
+      aws_api_gateway_integration.employees_list,
+      aws_api_gateway_integration.employees_update,
+      aws_api_gateway_integration.employees_delete,
+      aws_api_gateway_integration.employees_options,
+      aws_api_gateway_integration.employee_by_id_options,
     ]))
   }
 
@@ -366,6 +393,21 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.google_callback_options,
     aws_api_gateway_integration_response.google_options,
     aws_api_gateway_integration_response.google_callback_options,
+    # Employee management dependencies
+    aws_api_gateway_method.employees_create,
+    aws_api_gateway_method.employees_list,
+    aws_api_gateway_method.employees_update,
+    aws_api_gateway_method.employees_delete,
+    aws_api_gateway_method.employees_options,
+    aws_api_gateway_method.employee_by_id_options,
+    aws_api_gateway_integration.employees_create,
+    aws_api_gateway_integration.employees_list,
+    aws_api_gateway_integration.employees_update,
+    aws_api_gateway_integration.employees_delete,
+    aws_api_gateway_integration.employees_options,
+    aws_api_gateway_integration.employee_by_id_options,
+    aws_api_gateway_integration_response.employees_options,
+    aws_api_gateway_integration_response.employee_by_id_options,
   ]
 }
 
@@ -689,5 +731,305 @@ resource "aws_cloudwatch_metric_alarm" "api_request_spike_alarm" {
     Environment = var.environment
     Project     = var.project_name
     Purpose     = "DDoSMonitoring"
+  }
+}
+
+# ====================================================================
+# EMPLOYEE MANAGEMENT API ENDPOINTS
+# ====================================================================
+# Create employee management endpoints with proper authentication
+
+# Employee resource
+resource "aws_api_gateway_resource" "employees" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.auth.id
+  path_part   = "employees"
+}
+
+# Employee by ID resource (for update/delete)
+resource "aws_api_gateway_resource" "employee_by_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.employees.id
+  path_part   = "{employeeId}"
+}
+
+# ====================================================================
+# EMPLOYEE CRUD METHODS
+# ====================================================================
+
+# POST /auth/employees - Create employee
+resource "aws_api_gateway_method" "employees_create" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.employees.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+# GET /auth/employees - List employees
+resource "aws_api_gateway_method" "employees_list" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.employees.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# PUT /auth/employees/{employeeId} - Update employee
+resource "aws_api_gateway_method" "employees_update" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.employee_by_id.id
+  http_method   = "PUT"
+  authorization = "NONE"
+}
+
+# DELETE /auth/employees/{employeeId} - Delete employee
+resource "aws_api_gateway_method" "employees_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.employee_by_id.id
+  http_method   = "DELETE"
+  authorization = "NONE"
+}
+
+# ====================================================================
+# EMPLOYEE LAMBDA INTEGRATIONS
+# ====================================================================
+
+# Create employee integration
+resource "aws_api_gateway_integration" "employees_create" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = aws_api_gateway_method.employees_create.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.auth_functions["employees_create"].invoke_arn
+  timeout_milliseconds    = 29000
+}
+
+# List employees integration
+resource "aws_api_gateway_integration" "employees_list" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = aws_api_gateway_method.employees_list.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.auth_functions["employees_list"].invoke_arn
+  timeout_milliseconds    = 29000
+}
+
+# Update employee integration
+resource "aws_api_gateway_integration" "employees_update" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employee_by_id.id
+  http_method = aws_api_gateway_method.employees_update.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.auth_functions["employees_update"].invoke_arn
+  timeout_milliseconds    = 29000
+}
+
+# Delete employee integration
+resource "aws_api_gateway_integration" "employees_delete" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employee_by_id.id
+  http_method = aws_api_gateway_method.employees_delete.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.auth_functions["employees_delete"].invoke_arn
+  timeout_milliseconds    = 29000
+}
+
+# ====================================================================
+# EMPLOYEE CORS OPTIONS METHODS
+# ====================================================================
+
+# OPTIONS /auth/employees
+resource "aws_api_gateway_method" "employees_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.employees.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# OPTIONS /auth/employees/{employeeId}
+resource "aws_api_gateway_method" "employee_by_id_options" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.employee_by_id.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# OPTIONS integrations
+resource "aws_api_gateway_integration" "employees_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = aws_api_gateway_method.employees_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = jsonencode({
+      statusCode = 200
+    })
+  }
+}
+
+resource "aws_api_gateway_integration" "employee_by_id_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employee_by_id.id
+  http_method = aws_api_gateway_method.employee_by_id_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = jsonencode({
+      statusCode = 200
+    })
+  }
+}
+
+# Method responses for OPTIONS
+resource "aws_api_gateway_method_response" "employees_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = aws_api_gateway_method.employees_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
+    "method.response.header.Access-Control-Max-Age"           = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_method_response" "employee_by_id_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employee_by_id.id
+  http_method = aws_api_gateway_method.employee_by_id_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
+    "method.response.header.Access-Control-Max-Age"           = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+# Integration responses for OPTIONS
+resource "aws_api_gateway_integration_response" "employees_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employees.id
+  http_method = aws_api_gateway_method.employees_options.http_method
+  status_code = aws_api_gateway_method_response.employees_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = "'${var.cors_allow_headers}'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'GET,POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_allow_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'${var.cors_allow_credentials}'"
+    "method.response.header.Access-Control-Max-Age"           = "'${var.cors_max_age}'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.employees_options
+  ]
+}
+
+resource "aws_api_gateway_integration_response" "employee_by_id_options" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.employee_by_id.id
+  http_method = aws_api_gateway_method.employee_by_id_options.http_method
+  status_code = aws_api_gateway_method_response.employee_by_id_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = "'${var.cors_allow_headers}'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'PUT,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_allow_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'${var.cors_allow_credentials}'"
+    "method.response.header.Access-Control-Max-Age"           = "'${var.cors_max_age}'"
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.employee_by_id_options
+  ]
+}
+
+# ====================================================================
+# EMPLOYEE ENDPOINTS RATE LIMITING
+# ====================================================================
+
+# Create employee - Prevent spam
+resource "aws_api_gateway_method_settings" "employees_create_rate_limit" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  stage_name  = aws_api_gateway_stage.main.stage_name
+  method_path = "auth/employees/POST"
+
+  settings {
+    throttling_rate_limit  = 5  # 5 requests per second max
+    throttling_burst_limit = 10 # Allow brief burst of 10 requests
+
+    logging_level      = "INFO"
+    metrics_enabled    = true
+    data_trace_enabled = false
+  }
+}
+
+# List employees - Moderate limits for authenticated users
+resource "aws_api_gateway_method_settings" "employees_list_rate_limit" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  stage_name  = aws_api_gateway_stage.main.stage_name
+  method_path = "auth/employees/GET"
+
+  settings {
+    throttling_rate_limit  = 20 # 20 requests per second max
+    throttling_burst_limit = 40 # Allow brief burst of 40 requests
+
+    logging_level      = "INFO"
+    metrics_enabled    = true
+    data_trace_enabled = false
+  }
+}
+
+# Update employee - Moderate limits
+resource "aws_api_gateway_method_settings" "employees_update_rate_limit" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  stage_name  = aws_api_gateway_stage.main.stage_name
+  method_path = "auth/employees/{employeeId}/PUT"
+
+  settings {
+    throttling_rate_limit  = 10 # 10 requests per second max
+    throttling_burst_limit = 20 # Allow brief burst of 20 requests
+
+    logging_level      = "INFO"
+    metrics_enabled    = true
+    data_trace_enabled = false
+  }
+}
+
+# Delete employee - Conservative limits
+resource "aws_api_gateway_method_settings" "employees_delete_rate_limit" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  stage_name  = aws_api_gateway_stage.main.stage_name
+  method_path = "auth/employees/{employeeId}/DELETE"
+
+  settings {
+    throttling_rate_limit  = 5  # 5 requests per second max
+    throttling_burst_limit = 10 # Allow brief burst of 10 requests
+
+    logging_level      = "INFO"
+    metrics_enabled    = true
+    data_trace_enabled = false
   }
 }

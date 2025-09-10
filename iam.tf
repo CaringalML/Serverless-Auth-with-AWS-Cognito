@@ -110,7 +110,9 @@ resource "aws_iam_policy" "lambda_dynamodb_access" {
           aws_dynamodb_table.users.arn,
           "${aws_dynamodb_table.users.arn}/index/*",
           aws_dynamodb_table.token_cache.arn,
-          "${aws_dynamodb_table.token_cache.arn}/index/*"
+          "${aws_dynamodb_table.token_cache.arn}/index/*",
+          aws_dynamodb_table.employees.arn,
+          "${aws_dynamodb_table.employees.arn}/index/*"
         ]
       }
     ]

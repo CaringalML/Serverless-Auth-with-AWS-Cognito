@@ -83,3 +83,74 @@ resource "aws_dynamodb_table" "token_cache" {
     Security    = "Critical"
   }
 }
+
+# DynamoDB table for employee records
+resource "aws_dynamodb_table" "employees" {
+  name         = "${var.project_name}-${var.environment}-employees"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "userId"
+  range_key    = "employeeId"
+
+  # Primary key attributes
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "employeeId"
+    type = "S"
+  }
+
+  # For querying by department within user scope
+  attribute {
+    name = "department"
+    type = "S"
+  }
+
+  # For querying by status within user scope
+  attribute {
+    name = "status"
+    type = "S"
+  }
+
+  # GSI for department-based queries within user scope
+  global_secondary_index {
+    name            = "UserDepartmentIndex"
+    hash_key        = "userId"
+    range_key       = "department"
+    projection_type = "ALL"
+  }
+
+  # GSI for status-based queries within user scope
+  global_secondary_index {
+    name            = "UserStatusIndex"
+    hash_key        = "userId"
+    range_key       = "status"
+    projection_type = "ALL"
+  }
+
+  # Server-side encryption at rest for employee data protection
+  server_side_encryption {
+    enabled = true
+  }
+
+  # Point-in-time recovery for data protection
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  # Lifecycle management
+  lifecycle {
+    prevent_destroy = false
+  }
+
+  deletion_protection_enabled = var.skip_destroy_dynamodb
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+    Purpose     = "EmployeeData"
+    Security    = "Sensitive"
+  }
+}

@@ -827,3 +827,193 @@ def should_use_kms_encryption() -> bool:
         return random.randint(1, 100) <= rollout_percentage
     
     return False
+
+
+def extract_jwt_from_cookies(headers: dict) -> Optional[str]:
+    """
+    Extract JWT token from httpOnly cookies in request headers.
+    
+    Args:
+        headers: Request headers containing cookies
+        
+    Returns:
+        JWT token string if found, None otherwise
+    """
+    try:
+        cookie_header = headers.get('Cookie') or headers.get('cookie', '')
+        if not cookie_header:
+            logger.warning("No cookies found in request headers")
+            return None
+        
+        # Try to extract encrypted token first (KMS)
+        if should_use_kms_encryption():
+            access_token = extract_and_decrypt_token_from_cookie(cookie_header, 'access_token')
+            if access_token:
+                logger.info("Successfully extracted KMS-encrypted access token")
+                return access_token
+        
+        # Fallback to plain JWT cookie (backward compatibility)
+        cookies = {}
+        for cookie in cookie_header.split(';'):
+            if '=' in cookie:
+                key, value = cookie.strip().split('=', 1)
+                cookies[key] = value
+        
+        access_token = cookies.get('access_token')
+        if access_token:
+            logger.info("Successfully extracted plain JWT access token")
+            return access_token
+        
+        logger.warning("Access token not found in cookies")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error extracting JWT from cookies: {str(e)}")
+        return None
+
+
+def validate_and_decode_token(token: str) -> Optional[Dict]:
+    """
+    Validate and decode JWT token using Cognito.
+    
+    Args:
+        token: JWT token string to validate
+        
+    Returns:
+        Decoded token payload if valid, None otherwise
+    """
+    try:
+        if not token:
+            logger.warning("Empty token provided for validation")
+            return None
+        
+        import jwt
+        import requests
+        from jwt.algorithms import RSAAlgorithm
+        
+        # Get Cognito configuration from environment
+        user_pool_id = os.environ.get('COGNITO_USER_POOL_ID')
+        region = os.environ.get('AWS_DEFAULT_REGION', 'ap-southeast-2')
+        
+        if not user_pool_id:
+            logger.error("COGNITO_USER_POOL_ID not configured")
+            return None
+        
+        # Get Cognito public keys
+        keys_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json"
+        
+        try:
+            response = requests.get(keys_url, timeout=10)
+            response.raise_for_status()
+            jwks = response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch Cognito public keys: {str(e)}")
+            return None
+        
+        # Decode token header to get key ID
+        try:
+            header = jwt.get_unverified_header(token)
+            kid = header.get('kid')
+            
+            if not kid:
+                logger.error("Token header missing key ID (kid)")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to decode token header: {str(e)}")
+            return None
+        
+        # Find matching public key
+        public_key = None
+        for key in jwks.get('keys', []):
+            if key.get('kid') == kid:
+                public_key = RSAAlgorithm.from_jwk(key)
+                break
+        
+        if not public_key:
+            logger.error(f"Public key not found for kid: {kid}")
+            return None
+        
+        # Verify and decode token
+        try:
+            decoded_token = jwt.decode(
+                token,
+                public_key,
+                algorithms=['RS256'],
+                options={'verify_exp': True, 'verify_aud': False}  # Skip audience validation for flexibility
+            )
+            
+            # Additional validation
+            now = int(time.time())
+            
+            # Check token expiration
+            if decoded_token.get('exp', 0) < now:
+                logger.warning("Token has expired")
+                return None
+            
+            # Check token issued time (not too old)
+            if decoded_token.get('iat', now) > now + 300:  # Allow 5 min clock skew
+                logger.warning("Token issued in the future")
+                return None
+            
+            # Check token type (should be access token)
+            token_use = decoded_token.get('token_use')
+            if token_use != 'access':
+                logger.warning(f"Invalid token type: {token_use}")
+                return None
+            
+            logger.info(f"Successfully validated token for user: {decoded_token.get('sub', 'unknown')}")
+            return decoded_token
+            
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Invalid token: {str(e)}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error validating token: {str(e)}")
+        return None
+
+
+def create_error_response(status_code: int, message: str, headers: Optional[Dict] = None) -> Dict:
+    """
+    Create standardized error response with CORS headers.
+    
+    Args:
+        status_code: HTTP status code
+        message: Error message
+        headers: Additional headers
+        
+    Returns:
+        API Gateway response format
+    """
+    response_headers = get_cors_headers()
+    if headers:
+        response_headers.update(headers)
+    
+    return {
+        'statusCode': status_code,
+        'headers': response_headers,
+        'body': json.dumps({
+            'error': message,
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        })
+    }
+
+
+def get_cors_headers() -> Dict[str, str]:
+    """
+    Get CORS headers from environment variables.
+    
+    Returns:
+        Dictionary of CORS headers
+    """
+    return {
+        'Access-Control-Allow-Origin': os.environ.get('CORS_ALLOW_ORIGIN', 'https://filodelight.online'),
+        'Access-Control-Allow-Headers': os.environ.get('CORS_ALLOW_HEADERS', 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'),
+        'Access-Control-Allow-Methods': os.environ.get('CORS_ALLOW_METHODS', 'GET,OPTIONS,POST,PUT,DELETE'),
+        'Access-Control-Allow-Credentials': str(os.environ.get('CORS_ALLOW_CREDENTIALS', 'true')).lower(),
+        'Access-Control-Max-Age': str(os.environ.get('CORS_MAX_AGE', '86400'))
+    }

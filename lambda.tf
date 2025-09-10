@@ -74,6 +74,27 @@ locals {
       timeout     = 25
       memory_size = 512 # KMS encryption - more CPU/memory for better performance
     }
+    # Employee CRUD operations - require authentication for all operations
+    employees_create = {
+      handler     = "employees_create.lambda_handler"
+      timeout     = 15
+      memory_size = 256 # Higher memory for DynamoDB operations and validation
+    }
+    employees_list = {
+      handler     = "employees_list.lambda_handler"
+      timeout     = 15
+      memory_size = 256 # Higher memory for querying and data processing
+    }
+    employees_update = {
+      handler     = "employees_update.lambda_handler"
+      timeout     = 15
+      memory_size = 256 # Higher memory for update operations and validation
+    }
+    employees_delete = {
+      handler     = "employees_delete.lambda_handler"
+      timeout     = 10
+      memory_size = 128 # Standard memory for delete operations
+    }
   }
 }
 
@@ -187,6 +208,7 @@ resource "aws_lambda_function" "auth_functions" {
       COGNITO_USER_POOL_ID   = aws_cognito_user_pool.main.id
       USERS_TABLE            = aws_dynamodb_table.users.name
       TOKEN_CACHE_TABLE      = aws_dynamodb_table.token_cache.name
+      EMPLOYEES_TABLE        = aws_dynamodb_table.employees.name
       CORS_ALLOW_ORIGIN      = var.cors_allow_origin
       CORS_ALLOW_HEADERS     = var.cors_allow_headers
       CORS_ALLOW_METHODS     = var.cors_allow_methods

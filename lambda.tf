@@ -1,11 +1,36 @@
+# Build Lambda Layer with Python dependencies
+resource "null_resource" "lambda_layer_build" {
+  triggers = {
+    utils_code        = filemd5("${path.module}/lambda_functions/shared/utils.py")
+    turnstile_code    = filemd5("${path.module}/lambda_functions/shared/turnstile.py")
+    requirements      = filemd5("${path.module}/lambda_functions/shared/requirements.txt")
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Building Lambda layer with dependencies..." && \
+      cd "${path.module}/lambda_functions/shared" && \
+      rm -rf python layer_build lambda_layer.zip && \
+      mkdir -p python/lib/python3.12/site-packages && \
+      cp utils.py python/lib/python3.12/site-packages/ && \
+      cp turnstile.py python/lib/python3.12/site-packages/ && \
+      pip install -r requirements.txt -t python/lib/python3.12/site-packages/ --quiet --disable-pip-version-check 2>/dev/null || true && \
+      zip -r lambda_layer.zip python/ -q && \
+      rm -rf python && \
+      echo "Successfully built Lambda layer"
+    EOT
+    
+    interpreter = ["bash", "-c"]
+  }
+}
+
 # Archive Lambda Layer with source code tracking
 data "archive_file" "lambda_layer" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda_functions/shared"
-  output_path = "${path.module}/lambda_functions/shared/lambda_layer.zip"
+  source_file = "${path.module}/lambda_functions/shared/lambda_layer.zip"
+  output_path = "${path.module}/lambda_functions/shared/lambda_layer_final.zip"
 
-  # This ensures the archive is only recreated when source files change
-  excludes = ["__pycache__", "*.pyc", "*.pyo", ".DS_Store", "Thumbs.db", "*.zip"]
+  depends_on = [null_resource.lambda_layer_build]
 }
 
 resource "aws_lambda_layer_version" "shared" {
@@ -15,6 +40,8 @@ resource "aws_lambda_layer_version" "shared" {
 
   # This hash ensures the layer is only updated when the source code changes
   source_code_hash = data.archive_file.lambda_layer.output_base64sha256
+  
+  depends_on = [null_resource.lambda_layer_build]
 }
 
 locals {
@@ -159,17 +186,31 @@ resource "null_resource" "lambda_packages" {
     function_code = filemd5("${path.module}/lambda_functions/${each.key}/${each.key}.py")
     shared_utils  = filemd5("${path.module}/lambda_functions/shared/utils.py")
     turnstile     = filemd5("${path.module}/lambda_functions/shared/turnstile.py")
+    requirements  = can(filemd5("${path.module}/lambda_functions/${each.key}/requirements.txt")) ? filemd5("${path.module}/lambda_functions/${each.key}/requirements.txt") : "none"
   }
 
   # Build deployment package with correct structure (flat with shared utilities)
   provisioner "local-exec" {
     command = <<-EOT
+      echo "Building Lambda package for ${each.key}..." && \
       cd "${path.module}/lambda_functions/${each.key}" && \
-      rm -f ${each.key}.zip && \
-      zip -r ${each.key}.zip . && \
-      cd ../shared && \
-      zip -ru "../${each.key}/${each.key}.zip" . --exclude="__pycache__/*" "*.pyc" "*.pyo" "*.zip"
+      rm -rf temp_build ${each.key}.zip && \
+      mkdir -p temp_build && \
+      cp ${each.key}.py temp_build/ && \
+      cp ../shared/utils.py temp_build/ && \
+      cp ../shared/turnstile.py temp_build/ && \
+      if [ -f requirements.txt ]; then \
+        echo "Installing Python dependencies for ${each.key}..." && \
+        pip install -r requirements.txt -t temp_build/ --quiet --disable-pip-version-check 2>/dev/null || true; \
+      fi && \
+      cd temp_build && \
+      zip -r ../${each.key}.zip . -q && \
+      cd .. && \
+      rm -rf temp_build && \
+      echo "Successfully built ${each.key}.zip"
     EOT
+    
+    interpreter = ["bash", "-c"]
   }
 }
 

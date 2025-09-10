@@ -6,9 +6,15 @@ export const createEmployee = createAsyncThunk(
   'employees/create',
   async (employeeData, { rejectWithValue }) => {
     try {
+      // Add a small delay to ensure authentication cookies are ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const response = await employeeService.createEmployee(employeeData);
       return response;
     } catch (error) {
+      if (error.message.includes('Authentication required') || error.message.includes('401')) {
+        return rejectWithValue('Authentication required. Please sign in again.');
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -18,9 +24,16 @@ export const fetchEmployees = createAsyncThunk(
   'employees/fetchAll',
   async (filters = {}, { rejectWithValue }) => {
     try {
+      // Add a small delay to ensure authentication cookies are ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const response = await employeeService.getEmployees(filters);
       return response;
     } catch (error) {
+      // Check if it's an authentication error
+      if (error.message.includes('Authentication required') || error.message.includes('401')) {
+        return rejectWithValue('Authentication required. Please sign in again.');
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -30,9 +43,13 @@ export const updateEmployee = createAsyncThunk(
   'employees/update',
   async ({ employeeId, updateData }, { rejectWithValue }) => {
     try {
+      await new Promise(resolve => setTimeout(resolve, 100));
       const response = await employeeService.updateEmployee(employeeId, updateData);
       return response;
     } catch (error) {
+      if (error.message.includes('Authentication required') || error.message.includes('401')) {
+        return rejectWithValue('Authentication required. Please sign in again.');
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -42,9 +59,13 @@ export const deleteEmployee = createAsyncThunk(
   'employees/delete',
   async (employeeId, { rejectWithValue }) => {
     try {
+      await new Promise(resolve => setTimeout(resolve, 100));
       const response = await employeeService.deleteEmployee(employeeId);
       return { ...response, employeeId };
     } catch (error) {
+      if (error.message.includes('Authentication required') || error.message.includes('401')) {
+        return rejectWithValue('Authentication required. Please sign in again.');
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -54,9 +75,13 @@ export const deactivateEmployee = createAsyncThunk(
   'employees/deactivate',
   async (employeeId, { rejectWithValue }) => {
     try {
+      await new Promise(resolve => setTimeout(resolve, 100));
       const response = await employeeService.deactivateEmployee(employeeId);
       return { ...response, employeeId };
     } catch (error) {
+      if (error.message.includes('Authentication required') || error.message.includes('401')) {
+        return rejectWithValue('Authentication required. Please sign in again.');
+      }
       return rejectWithValue(error.message);
     }
   }

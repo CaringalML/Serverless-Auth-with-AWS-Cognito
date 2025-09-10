@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createEmployee, updateEmployee, clearError } from '../store/slices/employeeSlice';
+import authService from '../services/authService';
 
 const EmployeeForm = ({ employee, onClose, onSuccess }) => {
   const dispatch = useDispatch();
@@ -105,6 +106,18 @@ const EmployeeForm = ({ employee, onClose, onSuccess }) => {
     
     if (!validateForm()) return;
 
+    // Verify authentication before submitting
+    try {
+      const authStatus = await authService.isAuthenticated();
+      if (!authStatus) {
+        setErrors({ general: 'Authentication expired. Please sign in again.' });
+        return;
+      }
+    } catch (error) {
+      setErrors({ general: 'Authentication check failed. Please try again.' });
+      return;
+    }
+
     const submitData = {
       ...formData,
       salary: formData.salary ? parseFloat(formData.salary) : 0,
@@ -132,6 +145,10 @@ const EmployeeForm = ({ employee, onClose, onSuccess }) => {
       onClose();
     } catch (error) {
       console.error('Form submission error:', error);
+      // Handle authentication-specific errors
+      if (error.includes('Authentication required')) {
+        setErrors({ general: 'Authentication expired. Please sign in again.' });
+      }
     }
   };
 
@@ -185,13 +202,13 @@ const EmployeeForm = ({ employee, onClose, onSuccess }) => {
           </div>
 
           {/* Error Display */}
-          {error && (
+          {(error || errors.general) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-2">
                 <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
-                <span className="text-red-800">{error}</span>
+                <span className="text-red-800">{error || errors.general}</span>
               </div>
             </div>
           )}

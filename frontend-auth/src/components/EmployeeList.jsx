@@ -8,6 +8,7 @@ import {
   setFilters,
   clearFilters 
 } from '../store/slices/employeeSlice';
+import authService from '../services/authService';
 
 const EmployeeList = ({ onEditEmployee, onCreateNew }) => {
   const dispatch = useDispatch();
@@ -18,13 +19,40 @@ const EmployeeList = ({ onEditEmployee, onCreateNew }) => {
     error, 
     filters 
   } = useSelector((state) => state.employees);
+  
+  // Add auth state tracking
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchEmployees());
-  }, [dispatch]);
+    // Wait for authentication to be confirmed before making API calls
+    const initializeEmployeeData = async () => {
+      if (!isAuthenticated) {
+        return;
+      }
+
+      // Additional delay to ensure authentication cookies are ready
+      // This matches the ProtectedRoute delay pattern for consistency
+      setTimeout(async () => {
+        try {
+          // Verify we're still authenticated before making the API call
+          const authStatus = await authService.isAuthenticated();
+          if (authStatus) {
+            await dispatch(fetchEmployees()).unwrap();
+            setIsInitialized(true);
+          }
+        } catch (error) {
+          console.error('Failed to initialize employee data:', error);
+          setIsInitialized(true); // Set to true to show error state
+        }
+      }, 500); // 500ms delay to ensure cookies are ready
+    };
+
+    initializeEmployeeData();
+  }, [dispatch, isAuthenticated]);
 
   useEffect(() => {
     if (error) {
@@ -89,10 +117,16 @@ const EmployeeList = ({ onEditEmployee, onCreateNew }) => {
     return new Date(dateString).toLocaleDateString('en-US');
   };
 
-  if (loading && employees.length === 0) {
+  // Show loading while initializing or while making API calls
+  if (!isInitialized || (loading && employees.length === 0)) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
+          <p className="text-emerald-700 font-medium">
+            {!isInitialized ? 'Initializing employee data...' : 'Loading employees...'}
+          </p>
+        </div>
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { logout } from '../store/slices/authSlice';
 import authService from '../services/authService';
 import EmployeeManagement from './EmployeeManagement';
+import AuthDebugPanel from './AuthDebugPanel';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -211,6 +212,9 @@ const Dashboard = () => {
       </nav>
 
       {renderContent()}
+      
+      {/* Debug Panel for Testing Authentication */}
+      <AuthDebugPanel />
     </div>
   );
 };

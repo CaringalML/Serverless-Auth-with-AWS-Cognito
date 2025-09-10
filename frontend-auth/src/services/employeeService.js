@@ -32,8 +32,9 @@ api.interceptors.response.use(
     console.error('API Error:', error.response?.data || error.message);
     
     if (error.response?.status === 401) {
-      // Redirect to signin on authentication failure
-      window.location.href = '/signin';
+      // Don't immediately redirect - let the component handle it
+      // This prevents race conditions during page load
+      console.warn('Authentication required - token may not be ready');
     }
     
     return Promise.reject(error);

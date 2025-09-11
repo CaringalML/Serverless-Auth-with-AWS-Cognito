@@ -1,9 +1,9 @@
 # Build Lambda Layer with Python dependencies
 resource "null_resource" "lambda_layer_build" {
   triggers = {
-    utils_code        = filemd5("${path.module}/lambda_functions/shared/utils.py")
-    turnstile_code    = filemd5("${path.module}/lambda_functions/shared/turnstile.py")
-    requirements      = filemd5("${path.module}/lambda_functions/shared/requirements.txt")
+    utils_code     = filemd5("${path.module}/lambda_functions/shared/utils.py")
+    turnstile_code = filemd5("${path.module}/lambda_functions/shared/turnstile.py")
+    requirements   = filemd5("${path.module}/lambda_functions/shared/requirements.txt")
   }
 
   provisioner "local-exec" {
@@ -19,7 +19,7 @@ resource "null_resource" "lambda_layer_build" {
       rm -rf python && \
       echo "Successfully built Lambda layer"
     EOT
-    
+
     interpreter = ["bash", "-c"]
   }
 }
@@ -40,7 +40,7 @@ resource "aws_lambda_layer_version" "shared" {
 
   # This hash ensures the layer is only updated when the source code changes
   source_code_hash = data.archive_file.lambda_layer.output_base64sha256
-  
+
   depends_on = [null_resource.lambda_layer_build]
 }
 
@@ -209,7 +209,7 @@ resource "null_resource" "lambda_packages" {
       rm -rf temp_build && \
       echo "Successfully built ${each.key}.zip"
     EOT
-    
+
     interpreter = ["bash", "-c"]
   }
 }
